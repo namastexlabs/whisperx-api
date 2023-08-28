@@ -1,6 +1,4 @@
 fastapi
 requests
 streamlit
-sqlite3
-logging
-python_dotenv
+python-dotenv
