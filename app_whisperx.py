@@ -1,8 +1,10 @@
 import streamlit as st
 import os
 import subprocess
+import dotenv
+dotenv.load_dotenv()
 
-
+HF_TOKEN = os.environ.get("HUGGING_FACE_TOKEN")
 def main():
     st.title("Whisperx Processing and Summary Generation")
 
@@ -41,7 +43,7 @@ def main():
             "--language",
             language,
             "--hf_token",
-            "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",
+            "{HF_TOKEN}",
             "--output_format",
             output_format,
             "--output_dir",
