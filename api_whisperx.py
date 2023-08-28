@@ -29,6 +29,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", 'secret_key')
 MASTER_KEY = os.environ.get("MASTER_KEY", 'master_key')
 HF_TOKEN = os.environ.get("HUGGING_FACE_TOKEN")
 API_PORT = os.environ.get("API_PORT", 11300)
+API_HOST = os.environ.get("API_HOST", 'localhost')
 
 # Create an instance of HTTPBearer
 security = HTTPBearer()
@@ -85,7 +86,7 @@ def create_user(username: str, password: str, master_key: str = Query(...)):
         conn.close()
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
 
-@app.post("/whisperex-transcribe/")
+@app.post("/whisperx-transcribe/")
 async def generate_transcription(
     file: UploadFile = None,
     lang: str = Form("pt"),
@@ -167,4 +168,4 @@ async def generate_transcription(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(API_PORT))
+    uvicorn.run(app, host=API_HOST, port=int(API_PORT))
