@@ -11,8 +11,16 @@ import logging
 import jwt
 from datetime import datetime
 
-# Initialize FastAPI app and configure logging
-app = FastAPI()
+app = FastAPI(
+    title="Whisperx API Wrapper",
+    description="Upload a video or audio file and get a transcription in return, max file size is 100MB."
+    summary="Simple API Wrapper for the Whisperx library",
+    version="0.0.1",
+    license_info={
+        "name": "Apache 2.0",
+        "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
+    },
+)
 logging.basicConfig(level=logging.INFO)
 
 def get_db():
