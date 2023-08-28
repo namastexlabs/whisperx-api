@@ -13,7 +13,7 @@ from datetime import datetime
 
 app = FastAPI(
     title="Whisperx API Wrapper",
-    description="Upload a video or audio file and get a transcription in return, max file size is 100MB."
+    description="Upload a video or audio file and get a transcription in return, max file size is 100MB.",
     summary="Simple API Wrapper for the Whisperx library",
     version="0.0.1",
     license_info={

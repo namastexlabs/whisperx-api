@@ -1,5 +1,7 @@
 # Whisperx API Wrapper
 
+An API Wrapper for [Whisperx Library](https://github.com/m-bain/whisperX)
+
 ## Overview
 
 This is a FastAPI application that provides an endpoint for video/audio transcription using the `whisperx` command. The application supports multiple audio and video formats. It performs the transcription, alignment, and diarization of the uploaded media files.
