@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 import sqlite3
 import logging
 import jwt
-
+from datetime import datetime
 
 # Initialize FastAPI app and configure logging
 app = FastAPI()
@@ -60,6 +60,11 @@ async def get_current_user(authorization: HTTPAuthorizationCredentials = Depends
     except:
         raise HTTPException(status_code=403, detail="Forbidden")
     
+@app.get("/")
+def read_root():
+    now = datetime.now()
+    formatted_date = now.strftime("%Y-%m-%d %H:%M:%S")
+    return {"Date":  formatted_date, "info": "WhisperX API"}
 
 @app.post("/auth")
 def auth(username: str, password: str):
