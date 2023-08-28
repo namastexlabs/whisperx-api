@@ -1,6 +1,6 @@
-from fastapi import FastAPI, UploadFile, HTTPException, Form
 import subprocess
 import os
+from fastapi import FastAPI, UploadFile, HTTPException, Form
 import requests
 
 app = FastAPI()
@@ -11,14 +11,20 @@ async def process_video(
     file: UploadFile = None, min_speakers: int = Form(1), max_speakers: int = Form(2)
 ):
     try:
+        # Create the directory if it doesn't exist
+        if not os.path.exists('./temp'):
+            os.makedirs('./temp')
+
         # Step 1: Save the uploaded file to a temporary location
         temp_video_path = f"./temp/{file.filename}"
+        print(f"Saving file to {temp_video_path}")  # Debug log
         with open(temp_video_path, "wb") as buffer:
             buffer.write(file.file.read())
 
+
         # Step 2: Convert the video to MP3 using ffmpeg
         temp_mp3_path = temp_video_path.replace(".mp4", ".mp3")
-        subprocess.run(["ffmpeg", "-i", temp_video_path, temp_mp3_path])
+        subprocess.run(["ffmpeg", "-i", temp_video_path, temp_mp3_path], check=True)
 
         # Step 3: Run the whisperx command on the MP3 file
         output_dir = "./data/namastex/"
