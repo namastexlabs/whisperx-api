@@ -162,3 +162,4 @@ data/
 transcriptions/
 temp/
 user.db
+start.sh
