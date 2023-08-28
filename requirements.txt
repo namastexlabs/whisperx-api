@@ -1,3 +1,5 @@
 fastapi
 requests
 streamlit
+sqlite3
+logging
