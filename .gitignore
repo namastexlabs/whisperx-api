@@ -161,3 +161,4 @@ cython_debug/
 data/
 transcriptions/
 temp/
+user.db
