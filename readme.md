@@ -21,6 +21,7 @@ This is a FastAPI application that provides an endpoint for video/audio transcri
 - pyjwt
 - dotenv
 
+Follow the instructions on how to install Whisperx [in the official repository](https://github.com/m-bain/whisperX#3-install-this-repo)
 You can install these dependencies using the `requirements.txt` file:
 
 ```bash
@@ -31,7 +32,7 @@ pip install -r requirements.txt
 
 Create a `.env` file in your root directory and add the following variables:
 
-```
+```env
 SECRET_KEY=your_secret_key
 MASTER_KEY=your_master_key
 HUGGING_FACE_TOKEN=your_hugging_face_token
@@ -58,16 +59,12 @@ Replace `main` with the name of your Python file if it's not `main.py`.
 
 Authenticate a user and return a JWT token.
 
-#### Parameters:
-
 - `username`: The username of the user.
 - `password`: The password of the user.
 
 ### POST `/create_user`
 
 Create a new user.
-
-#### Parameters:
 
 - `username`: Desired username.
 - `password`: Desired password.
@@ -76,8 +73,6 @@ Create a new user.
 ### POST `/whisperx-transcribe/`
 
 Transcribe an uploaded audio or video file.
-
-#### Parameters:
 
 - `file`: The audio or video file to transcribe.
 - `lang`: Language for transcription (default is "pt").
