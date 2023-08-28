@@ -3,3 +3,4 @@ requests
 streamlit
 sqlite3
 logging
+python_dotenv
