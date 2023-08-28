@@ -61,7 +61,7 @@ async def get_current_user(authorization: HTTPAuthorizationCredentials = Depends
     
 
 @app.post("/auth")
-def get_token(username: str, password: str):
+def auth(username: str, password: str):
     conn, cursor = get_db()
     cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
     row = cursor.fetchone()
@@ -72,7 +72,7 @@ def get_token(username: str, password: str):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
 @app.post("/create_user")
-def register_user(username: str, password: str, master_key: str = Query(...)):
+def create_user(username: str, password: str, master_key: str = Query(...)):
     if master_key != MASTER_KEY:
         return JSONResponse(status_code=403, content={"detail": "Not authorized"})
     conn, cursor = get_db()
@@ -86,8 +86,10 @@ def register_user(username: str, password: str, master_key: str = Query(...)):
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
 
 @app.post("/whisperex-transcribe/")
-async def process_video(
+async def generate_transcription(
     file: UploadFile = None,
+    lang: str = Form("pt"),
+    model: str = Form("large-v2"), 
     min_speakers: int = Form(1),
     max_speakers: int = Form(2),
     current_user: dict = Depends(get_current_user)  
@@ -110,19 +112,33 @@ async def process_video(
         # Step 2: Convert the video or audio to MP3 using ffmpeg
         file_extension = os.path.splitext(file.filename)[-1].lower()
         supported_formats = [".mp4", ".avi", ".mkv", ".flv", ".mov", ".wmv", ".webm", ".mp3", ".wav", ".flac"]
-        
+
         if file_extension not in supported_formats:
             logging.error("Unsupported file format.")
             raise HTTPException(status_code=415, detail="Unsupported Media Type")
 
         temp_mp3_path = os.path.splitext(temp_video_path)[0] + ".mp3"
-        subprocess.run(["ffmpeg", "-y", "-i", temp_video_path, temp_mp3_path], check=True)
-        logging.info("Converted video/audio to MP3.")
+
+        # Skip conversion if the file is already an MP3
+        if file_extension != ".mp3":
+            subprocess.run(["ffmpeg", "-y", "-i", temp_video_path, temp_mp3_path], check=True)
+            logging.info("Converted video/audio to MP3.")
+        else:
+            # If the file is already an MP3, simply rename it to the temp_mp3_path
+            os.rename(temp_video_path, temp_mp3_path)
+            logging.info("File is already in MP3 format.")
+            
         # Step 3: Run the whisperx command on the MP3 file
         output_dir = "./data/"
-        cmd = f"whisperx {temp_mp3_path} --model large-v2 --language pt --hf_token {HF_TOKEN} --output_format all --output_dir {output_dir}  --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --diarize --min_speakers {min_speakers} --max_speakers {max_speakers}"
-        subprocess.run(cmd.split())
+        cmd = f"whisperx {temp_mp3_path} --model {model} --language {lang} --hf_token {HF_TOKEN} --output_format all --output_dir {output_dir}  --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --diarize --min_speakers {min_speakers} --max_speakers {max_speakers}"
+        subprocess.run(cmd.split(), check=True)
         logging.info("Ran whisperx command.")
+        # Check if the MP3 file still exists
+        if os.path.exists(temp_mp3_path):
+            logging.info(f"The MP3 file {temp_mp3_path} exists.")
+        else:
+            logging.warning(f"The MP3 file {temp_mp3_path} does not exist.")
+
 
         # Step 4: Read the .vtt file
         vtt_path = [f for f in os.listdir(output_dir) if f.endswith(".vtt")][0]
@@ -135,9 +151,11 @@ async def process_video(
         with open(os.path.join(output_dir, txt_path), "r") as txt_file:
             txt_content = txt_file.read()
 
-        # Clean up temporary files
-        os.remove(temp_video_path)
-        os.remove(temp_mp3_path)
+       # Clean up temporary files
+        if os.path.exists(temp_video_path):
+            os.remove(temp_video_path)
+        if os.path.exists(temp_mp3_path):
+            os.remove(temp_mp3_path)
         logging.info("Cleaned up temporary files.")
 
         logging.info("Video processing completed successfully.")
