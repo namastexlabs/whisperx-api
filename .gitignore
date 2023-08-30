@@ -159,7 +159,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 data/
+data-old/
 transcriptions/
+transcriptions-old/
 temp/
 user.db
 start.sh

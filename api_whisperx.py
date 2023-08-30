@@ -1,20 +1,24 @@
-import os
-import dotenv
-dotenv.load_dotenv()
-import subprocess
-import requests
 from fastapi import FastAPI, Depends, HTTPException, Query, Form, UploadFile
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse,  StreamingResponse
+from zipfile import ZipFile
+from io import BytesIO
+import os
+import dotenv
+import subprocess
 import sqlite3
 import logging
 import jwt
 from datetime import datetime
+from enum import Enum
 
+# Load environment variables
+dotenv.load_dotenv()
+
+# Initialize FastAPI and logging
 app = FastAPI(
     title="Whisperx API Wrapper",
     description="Upload a video or audio file and get a transcription in return, max file size is 100MB.",
-    summary="Simple API Wrapper for the Whisperx library",
     version="0.0.1",
     license_info={
         "name": "Apache 2.0",
@@ -23,6 +27,37 @@ app = FastAPI(
 )
 logging.basicConfig(level=logging.INFO)
 
+# Initialize security
+security = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth", auto_error=False)
+
+class LanguageEnum(str, Enum):
+    pt = "pt"
+    en = "en"
+    es = "es"
+    fr = "fr"
+    it = "it"
+    de = "de"
+
+class ModelEnum(str, Enum):
+    tiny = "tiny"
+    small = "small"
+    base = "base"
+    medium = "medium"
+    large = "large-v2"
+
+class ResponseTypeEnum(str, Enum):
+    json = "json"
+    file = "file"
+    
+# Environment Variables
+SECRET_KEY = os.getenv("SECRET_KEY", "secret_key")
+MASTER_KEY = os.getenv("MASTER_KEY", "master_key")
+HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
+API_PORT = os.getenv("API_PORT", 11300)
+API_HOST = os.getenv("API_HOST", "localhost")
+
+# Database functions
 def get_db():
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
@@ -31,20 +66,6 @@ def get_db():
     )
     conn.commit()
     return conn, cursor
-
-# Secret key for JWT and master key for user creation
-SECRET_KEY = os.environ.get("SECRET_KEY", 'secret_key')
-MASTER_KEY = os.environ.get("MASTER_KEY", 'master_key')
-HF_TOKEN = os.environ.get("HUGGING_FACE_TOKEN")
-API_PORT = os.environ.get("API_PORT", 11300)
-API_HOST = os.environ.get("API_HOST", 'localhost')
-
-# Create an instance of HTTPBearer
-security = HTTPBearer()
-
-
-# OAuth2 token location
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth", auto_error=False)
 
 # JWT functions
 def create_jwt_token(data: dict):
@@ -59,7 +80,6 @@ def decode_jwt_token(token: str):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 # Dependency for authentication
-
 async def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(security)):
     token = authorization.credentials
     try:
@@ -67,12 +87,11 @@ async def get_current_user(authorization: HTTPAuthorizationCredentials = Depends
         return payload
     except:
         raise HTTPException(status_code=403, detail="Forbidden")
-    
+
+# API Endpoints
 @app.get("/")
 def read_root():
-    now = datetime.now()
-    formatted_date = now.strftime("%Y-%m-%d %H:%M:%S")
-    return {"Date":  formatted_date, "info": "WhisperX API"}
+    return {"info": "WhisperX API"}
 
 @app.post("/auth")
 def auth(username: str, password: str):
@@ -99,85 +118,96 @@ def create_user(username: str, password: str, master_key: str = Query(...)):
         conn.close()
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
 
+def create_directories():
+    if not os.path.exists('./temp'):
+        os.makedirs('./temp')
+    if not os.path.exists('./data'):
+        os.makedirs('./data')
+
+def save_uploaded_file(file):
+    temp_video_path = f"./temp/{file.filename}"
+    with open(temp_video_path, "wb") as buffer:
+        buffer.write(file.file.read())
+    return temp_video_path
+
+def convert_to_mp3(file_path):
+    temp_mp3_path = os.path.splitext(file_path)[0] + ".mp3"
+    subprocess.run(["ffmpeg", "-y", "-i", file_path, temp_mp3_path], check=True)
+    return temp_mp3_path
+
+def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers):
+    output_dir = "./data/"
+    cmd = f"whisperx {temp_mp3_path} --model {model} --language {lang} --hf_token {HF_TOKEN} --output_format all --output_dir {output_dir}  --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --diarize --min_speakers {min_speakers} --max_speakers {max_speakers}"
+    subprocess.run(cmd.split(), check=True)
+
+def read_output_files():
+    output_dir = "./data/"
+    vtt_path = [f for f in os.listdir(output_dir) if f.endswith(".vtt")][0]
+    txt_path = [f for f in os.listdir(output_dir) if f.endswith(".txt")][0]
+
+    with open(os.path.join(output_dir, vtt_path), "r") as vtt_file:
+        vtt_content = vtt_file.read()
+
+    with open(os.path.join(output_dir, txt_path), "r") as txt_file:
+        txt_content = txt_file.read()
+
+    return vtt_content, txt_content, vtt_path, txt_path
+
+def zip_files(vtt_path, txt_path):
+    memory_file = BytesIO()
+    with ZipFile(memory_file, 'w') as zf:
+        zf.write(os.path.join("./data/", vtt_path), vtt_path)
+        zf.write(os.path.join("./data/", txt_path), txt_path)
+    memory_file.seek(0)
+    return memory_file
+
+
 @app.post("/whisperx-transcribe/")
 async def generate_transcription(
     file: UploadFile = None,
-    lang: str = Form("pt"),
-    model: str = Form("large-v2"), 
-    min_speakers: int = Form(1),
-    max_speakers: int = Form(2),
-    current_user: dict = Depends(get_current_user)  
+    lang: LanguageEnum = Form(LanguageEnum.pt, description="Language for transcription"),
+    model: ModelEnum = Form(ModelEnum.large, description="Model for transcription"),
+    min_speakers: int = Form(1, description="Minimum number of speakers"),
+    max_speakers: int = Form(2, description="Maximum number of speakers"),
+    current_user: dict = Depends(get_current_user),
+    response_type: ResponseTypeEnum = Query(ResponseTypeEnum.json, description="Type of the response, either 'json' or 'file")
 ):
+    start_time = datetime.now()
+
     try:
-        logging.info("Starting video processing.")
-        # Create the directory if it doesn't exist
-        if not os.path.exists('./temp'):
-            os.makedirs('./temp')
-        logging.info("Checked/created temp directory.")
+        create_directories()
+        temp_video_path = save_uploaded_file(file)
+        temp_mp3_path = convert_to_mp3(temp_video_path)
+        run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers)
+        vtt_content, txt_content, vtt_path, txt_path = read_output_files()
 
-        # Step 1: Save the uploaded file to a temporary location
-        temp_video_path = f"./temp/{file.filename}"
-        logging.info(f"Saving file to {temp_video_path}")
-        with open(temp_video_path, "wb") as buffer:
-            buffer.write(file.file.read())
-        
-        logging.info("File saved successfully.")
+        end_time = datetime.now()
+        elapsed_time = end_time - start_time
 
-        # Step 2: Convert the video or audio to MP3 using ffmpeg
-        file_extension = os.path.splitext(file.filename)[-1].lower()
-        supported_formats = [".mp4", ".avi", ".mkv", ".flv", ".mov", ".wmv", ".webm", ".mp3", ".wav", ".flac"]
+        response_dict = {"status": "success", "total_time": str(elapsed_time)}
 
-        if file_extension not in supported_formats:
-            logging.error("Unsupported file format.")
-            raise HTTPException(status_code=415, detail="Unsupported Media Type")
-
-        temp_mp3_path = os.path.splitext(temp_video_path)[0] + ".mp3"
-
-        # Skip conversion if the file is already an MP3
-        if file_extension != ".mp3":
-            subprocess.run(["ffmpeg", "-y", "-i", temp_video_path, temp_mp3_path], check=True)
-            logging.info("Converted video/audio to MP3.")
-        else:
-            # If the file is already an MP3, simply rename it to the temp_mp3_path
-            os.rename(temp_video_path, temp_mp3_path)
-            logging.info("File is already in MP3 format.")
+        if response_type == 'file':
+            # Create zip file
+            memory_file = zip_files(vtt_path, txt_path)
             
-        # Step 3: Run the whisperx command on the MP3 file
-        output_dir = "./data/"
-        cmd = f"whisperx {temp_mp3_path} --model {model} --language {lang} --hf_token {HF_TOKEN} --output_format all --output_dir {output_dir}  --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --diarize --min_speakers {min_speakers} --max_speakers {max_speakers}"
-        subprocess.run(cmd.split(), check=True)
-        logging.info("Ran whisperx command.")
-        # Check if the MP3 file still exists
-        if os.path.exists(temp_mp3_path):
-            logging.info(f"The MP3 file {temp_mp3_path} exists.")
+            # Create custom zip file name
+            original_file_name, _ = os.path.splitext(file.filename)
+            zip_file_name = f"{original_file_name}_transcribed.zip"
+
+            return StreamingResponse(
+                memory_file, 
+                media_type="application/x-zip-compressed", 
+                headers={"Content-Disposition": f"attachment; filename={zip_file_name}"}
+            )
         else:
-            logging.warning(f"The MP3 file {temp_mp3_path} does not exist.")
+            response_dict.update({"vtt_content": vtt_content, "text_content": txt_content})
 
-
-        # Step 4: Read the .vtt file
-        vtt_path = [f for f in os.listdir(output_dir) if f.endswith(".vtt")][0]
-        with open(os.path.join(output_dir, vtt_path), "r") as txt_file:
-            vtt_content = txt_file.read()
-        logging.info("Read .vtt file.")
-        
-         # Step 5: Read the .TXT file
-        txt_path = [f for f in os.listdir(output_dir) if f.endswith(".txt")][0]
-        with open(os.path.join(output_dir, txt_path), "r") as txt_file:
-            txt_content = txt_file.read()
-
-       # Clean up temporary files
-        if os.path.exists(temp_video_path):
-            os.remove(temp_video_path)
-        if os.path.exists(temp_mp3_path):
-            os.remove(temp_mp3_path)
-        logging.info("Cleaned up temporary files.")
-
-        logging.info("Video processing completed successfully.")
-        return {"status": "success", "vtt_content":vtt_content , "text_content": txt_content}
+        return response_dict
 
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn
