@@ -19,7 +19,7 @@ dotenv.load_dotenv()
 app = FastAPI(
     title="Whisperx API Wrapper",
     description="Upload a video or audio file and get a transcription in return, max file size is 100MB.",
-    version="0.0.1",
+    version="0.1.2",
     license_info={
         "name": "Apache 2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.html",
