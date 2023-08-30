@@ -57,10 +57,6 @@ def main():
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         st.write(result.stdout)
 
-        # Call the /generate-summary API (assuming you've created a Flask API for it)
-        # Use the 'requests' library to send a POST request to the API
-        # Display the results in the Streamlit app
-
     st.write("Select and set parameters to start processing.")
 
 

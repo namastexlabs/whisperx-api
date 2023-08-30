@@ -164,13 +164,13 @@ def zip_files(vtt_path, txt_path):
 
 @app.post("/whisperx-transcribe/")
 async def generate_transcription(
-    file: UploadFile = None,
+    current_user: dict = Depends(get_current_user),
     lang: LanguageEnum = Form(LanguageEnum.pt, description="Language for transcription"),
     model: ModelEnum = Form(ModelEnum.large, description="Model for transcription"),
     min_speakers: int = Form(1, description="Minimum number of speakers"),
     max_speakers: int = Form(2, description="Maximum number of speakers"),
-    current_user: dict = Depends(get_current_user),
-    response_type: ResponseTypeEnum = Query(ResponseTypeEnum.json, description="Type of the response, either 'json' or 'file")
+    response_type: ResponseTypeEnum = Query(ResponseTypeEnum.json, description="Type of the response, either 'json' or 'file"),
+    file: UploadFile = None,
 ):
     start_time = datetime.now()
 
