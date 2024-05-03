@@ -2,13 +2,13 @@ import logging
 import sys
 import os
 import subprocess
-from api.config import API_HOST, API_PORT
+from src.api.config import API_HOST, API_PORT
 from fastapi import FastAPI, Depends, HTTPException, Query, Form, UploadFile
-from api.auth import auth, get_current_user, create_user
-from api.database import get_db
-from api.models import LanguageEnum, ModelEnum, ResponseTypeEnum
-from api.tasks import transcribe_file, celery_app
-from utils.file_utils import create_directories, save_uploaded_file
+from src.api.auth import auth, get_current_user, create_user
+from src.api.database import get_db
+from src.api.models import LanguageEnum, ModelEnum, ResponseTypeEnum
+from src.api.tasks import transcribe_file, celery_app
+from src.utils.file_utils import create_directories, save_uploaded_file
 from celery import states
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,22 +27,28 @@ app = FastAPI(
 )
 logging.basicConfig(level=logging.INFO)
 
+
 @app.get("/")
 def read_root():
     return {"info": "WhisperX API"}
+
 
 @app.post("/auth")
 def auth_endpoint(username: str, password: str):
     return auth(username, password)
 
+
 @app.post("/create_user")
 def create_user_endpoint(username: str, password: str, master_key: str = Query(...)):
     return create_user(username, password, master_key)
 
+
 @app.post("/jobs")
 async def create_transcription_job(
     current_user: dict = Depends(get_current_user),
-    lang: LanguageEnum = Form(LanguageEnum.pt, description="Language for transcription"),
+    lang: LanguageEnum = Form(
+        LanguageEnum.pt, description="Language for transcription"
+    ),
     model: ModelEnum = Form(ModelEnum.largeV3, description="Model for transcription"),
     min_speakers: int = Form(1, description="Minimum number of speakers"),
     max_speakers: int = Form(2, description="Maximum number of speakers"),
@@ -51,11 +57,14 @@ async def create_transcription_job(
     try:
         create_directories()
         temp_video_path = save_uploaded_file(file)
-        task = transcribe_file.delay(temp_video_path, lang, model, min_speakers, max_speakers)
+        task = transcribe_file.delay(
+            temp_video_path, lang, model, min_speakers, max_speakers
+        )
         return {"task_id": task.id, "status": "PENDING"}
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/jobs")
 async def list_jobs(current_user: dict = Depends(get_current_user)):
@@ -65,6 +74,7 @@ async def list_jobs(current_user: dict = Depends(get_current_user)):
         for task in task_list:
             jobs.append({"task_id": task["id"], "status": task["state"]})
     return jobs
+
 
 @app.get("/jobs/{task_id}")
 async def get_job_status(task_id: str, current_user: dict = Depends(get_current_user)):
@@ -88,17 +98,21 @@ async def get_job_status(task_id: str, current_user: dict = Depends(get_current_
         }
     return response
 
+
 @app.post("/jobs/{task_id}/stop")
 async def stop_job(task_id: str, current_user: dict = Depends(get_current_user)):
     celery_app.control.revoke(task_id, terminate=True)
     return {"task_id": task_id, "status": "STOPPED"}
-  
+
+
 if __name__ == "__main__":
     import uvicorn
     from multiprocessing import Process
 
     def start_celery_worker():
-        subprocess.run(["celery", "-A", "api.main.celery_app", "worker", "--loglevel=info"])
+        subprocess.run(
+            ["celery", "-A", "api.main.celery_app", "worker", "--loglevel=info"]
+        )
 
     celery_process = Process(target=start_celery_worker)
     celery_process.start()

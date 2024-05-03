@@ -1,11 +1,14 @@
 import logging
 import os
-from api.config import BROKER_URL
+from src.api.config import BROKER_URL
 from celery import Celery
-from utils.file_utils import convert_to_mp3, read_output_files
-from utils.transcription_utils import run_whisperx
+from src.utils.file_utils import convert_to_mp3, read_output_files
+from src.utils.transcription_utils import run_whisperx
 
-celery_app = Celery('whisperx-tasks', backend='db+sqlite:///celery.db', broker=BROKER_URL)
+celery_app = Celery(
+    "whisperx-tasks", backend="db+sqlite:///celery.db", broker=BROKER_URL
+)
+
 
 @celery_app.task(name="transcribe_file")
 def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
@@ -23,10 +26,10 @@ def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
             "vtt_path": output_files["vtt_path"],
             "txt_path": output_files["txt_path"],
             "json_path": output_files["json_path"],
-            "srt_path": output_files["srt_path"]
+            "srt_path": output_files["srt_path"],
         }
         return result
-    
+
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise e

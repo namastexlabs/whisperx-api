@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from api.config import HF_TOKEN
+from src.api.config import HF_TOKEN
 
 
 def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers):

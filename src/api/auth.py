@@ -1,10 +1,10 @@
 import os
-from api.config import MASTER_KEY, SECRET_KEY, TOKEN_EXPIRATION_DAYS
+from src.api.config import MASTER_KEY, SECRET_KEY, TOKEN_EXPIRATION_DAYS
 from fastapi import Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 from datetime import datetime, timedelta
-from api.database import get_db
+from src.api.database import get_db
 import sqlite3
 
 
@@ -17,6 +17,7 @@ def create_jwt_token(data: dict):
     data["exp"] = token_expiration
     return jwt.encode(data, SECRET_KEY, algorithm="HS256")
 
+
 def decode_jwt_token(token: str):
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
@@ -25,10 +26,15 @@ def decode_jwt_token(token: str):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme)):
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(oauth2_scheme),
+):
     token = credentials.credentials
     conn, cursor = get_db()
-    cursor.execute("SELECT username, token_expiration FROM users WHERE token = ?", (token,))
+    cursor.execute(
+        "SELECT username, token_expiration FROM users WHERE token = ?", (token,)
+    )
     row = cursor.fetchone()
     conn.close()
     if row:
@@ -47,20 +53,26 @@ def auth(username: str, password: str):
     if row and row[0] == password:
         token_expiration = datetime.utcnow() + timedelta(days=TOKEN_EXPIRATION_DAYS)
         token = create_jwt_token({"sub": username, "exp": token_expiration})
-        cursor.execute("UPDATE users SET token = ?, token_expiration = ? WHERE username = ?", (token, token_expiration.isoformat(), username))
+        cursor.execute(
+            "UPDATE users SET token = ?, token_expiration = ? WHERE username = ?",
+            (token, token_expiration.isoformat(), username),
+        )
         conn.commit()
         conn.close()
         return {"access_token": token, "token_type": "bearer"}
     else:
         conn.close()
-        raise HTTPException(status_code=401, detail="Invalid username or password")  
-    
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+
+
 def create_user(username: str, password: str, master_key: str):
     if master_key != MASTER_KEY:
         raise HTTPException(status_code=403, detail="Not authorized")
     conn, cursor = get_db()
     try:
-        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        cursor.execute(
+            "INSERT INTO users (username, password) VALUES (?, ?)", (username, password)
+        )
         conn.commit()
         conn.close()
         return {"detail": "User created successfully"}
