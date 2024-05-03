@@ -1,9 +1,9 @@
 import os
 import subprocess
 from multiprocessing import Process
-from api.config import API_HOST, API_PORT
+from src.api.config import API_HOST, API_PORT
 import uvicorn
-from api.main import app
+from src.api.main import app
 
 def start_celery_worker():
     subprocess.run(["celery", "-A", "api.tasks.celery_app", "worker", "--loglevel=info"])
