@@ -4,3 +4,6 @@ streamlit
 python-dotenv
 PyJWT
 celery
+pytest-mock
+pytest
+pytest-asyncio
