@@ -163,5 +163,6 @@ data-old/
 transcriptions/
 transcriptions-old/
 temp/
-user.db
+users.db
+celery.db
 start.sh
