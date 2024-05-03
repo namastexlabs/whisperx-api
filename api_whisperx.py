@@ -14,6 +14,8 @@ from celery import states
 from celery.exceptions import Ignore
 from celery import Celery, Task
 from utils import convert_to_mp3, create_directories, read_output_files, run_whisperx, save_uploaded_file
+import datetime
+
 
 # Load environment variables
 dotenv.load_dotenv()
@@ -37,6 +39,7 @@ HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
 API_PORT = os.getenv("API_PORT", 11300)
 API_HOST = os.getenv("API_HOST", "localhost")
 BROKER_URL = os.getenv("RABBIT_MQ_URI", "amqp://guest:guest@localhost:5672//")
+TOKEN_EXPIRATION_DAYS = 7
 
 # Initialize Celery
 celery_app = Celery('whisperx-tasks', backend='db+sqlite:///celery.db', broker=BROKER_URL)
@@ -65,6 +68,16 @@ class ResponseTypeEnum(str, Enum):
     json = "json"
     file = "file"
 
+# Update the users table creation
+def get_db():
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    cursor.execute(
+        "CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, token TEXT, token_expiration DATETIME)"
+    )
+    conn.commit()
+    return conn, cursor
+
 # Database functions
 def get_db():
     conn = sqlite3.connect("users.db")
@@ -88,21 +101,26 @@ def decode_jwt_token(token: str):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 # Dependency for authentication
-async def get_current_user(authorization: HTTPAuthorizationCredentials = Depends(security)):
-    token = authorization.credentials
-    try:
-        payload = decode_jwt_token(token)
-        return payload
-    except:
-        raise HTTPException(status_code=403, detail="Forbidden")
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    conn, cursor = get_db()
+    cursor.execute("SELECT username, token_expiration FROM users WHERE token = ?", (token,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        username, token_expiration = row
+        if token_expiration and token_expiration > datetime.datetime.utcnow():
+            return {"username": username}
+    raise HTTPException(status_code=401, detail="Invalid or expired token")
+
 
 # Celery task for transcription
 @celery_app.task(name="transcribe_file")
 def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
     try:
         temp_mp3_path = convert_to_mp3(temp_video_path)
+        base_name = os.path.splitext(os.path.basename(temp_mp3_path))[0]
         run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers)
-        output_files = read_output_files()
+        output_files = read_output_files(base_name)
         result = {
             "status": "success",
             "vtt_content": output_files["vtt_content"],
@@ -130,10 +148,15 @@ def auth(username: str, password: str):
     conn, cursor = get_db()
     cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
     row = cursor.fetchone()
-    conn.close()
     if row and row[0] == password:
-        return {"access_token": create_jwt_token({"sub": username}), "token_type": "bearer"}
+        token_expiration = datetime.datetime.utcnow() + datetime.timedelta(days=TOKEN_EXPIRATION_DAYS)
+        token = create_jwt_token({"sub": username, "exp": token_expiration})
+        cursor.execute("UPDATE users SET token = ?, token_expiration = ? WHERE username = ?", (token, token_expiration, username))
+        conn.commit()
+        conn.close()
+        return {"access_token": token, "token_type": "bearer"}
     else:
+        conn.close()
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
 @app.post("/create_user")

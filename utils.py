@@ -31,12 +31,12 @@ def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers):
     cmd = f"whisperx {temp_mp3_path} --model {model} --language {lang} --hf_token {HF_TOKEN} --output_format all --output_dir {output_dir}  --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --diarize --min_speakers {min_speakers} --max_speakers {max_speakers}"
     subprocess.run(cmd.split(), check=True)
 
-def read_output_files():
+def read_output_files(base_name):
     output_dir = "./data/"
-    vtt_path = [f for f in os.listdir(output_dir) if f.endswith(".vtt")][0]
-    txt_path = [f for f in os.listdir(output_dir) if f.endswith(".txt")][0]
-    json_path = [f for f in os.listdir(output_dir) if f.endswith(".json")][0]
-    srt_path = [f for f in os.listdir(output_dir) if f.endswith(".srt")][0]
+    vtt_path = f"{base_name}.vtt"
+    txt_path = f"{base_name}.txt"
+    json_path = f"{base_name}.json"
+    srt_path = f"{base_name}.srt"
     
     with open(os.path.join(output_dir, vtt_path), "r") as vtt_file:
         vtt_content = vtt_file.read()
@@ -60,7 +60,6 @@ def read_output_files():
         "json_path": json_path,
         "srt_path": srt_path
     }
-    
     
 def zip_files(vtt_path, txt_path):
     memory_file = BytesIO()
