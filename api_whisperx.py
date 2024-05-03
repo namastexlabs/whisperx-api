@@ -1,8 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Query, Form, UploadFile
 from fastapi.security import HTTPBearer, OAuth2PasswordBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse,  StreamingResponse
-from zipfile import ZipFile
-from io import BytesIO
+from fastapi.responses import JSONResponse, StreamingResponse
+
 import os
 import dotenv
 import subprocess
@@ -11,6 +10,10 @@ import logging
 import jwt
 from datetime import datetime
 from enum import Enum
+from celery import states
+from celery.exceptions import Ignore
+from celery import Celery, Task
+from utils import convert_to_mp3, create_directories, read_output_files, run_whisperx, save_uploaded_file
 
 # Load environment variables
 dotenv.load_dotenv()
@@ -26,6 +29,17 @@ app = FastAPI(
     },
 )
 logging.basicConfig(level=logging.INFO)
+
+# Environment Variables
+SECRET_KEY = os.getenv("SECRET_KEY", "secret_key")
+MASTER_KEY = os.getenv("MASTER_KEY", "master_key")
+HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
+API_PORT = os.getenv("API_PORT", 11300)
+API_HOST = os.getenv("API_HOST", "localhost")
+BROKER_URL = os.getenv("RABBIT_MQ_URI", "amqp://guest:guest@localhost:5672//")
+
+# Initialize Celery
+celery_app = Celery('whisperx-tasks', backend='db+sqlite:///celery.db', broker=BROKER_URL)
 
 # Initialize security
 security = HTTPBearer()
@@ -44,18 +58,12 @@ class ModelEnum(str, Enum):
     small = "small"
     base = "base"
     medium = "medium"
-    large = "large-v2"
+    largeV2 = "large-v2"
+    largeV3 = "large-v3"
 
 class ResponseTypeEnum(str, Enum):
     json = "json"
     file = "file"
-    
-# Environment Variables
-SECRET_KEY = os.getenv("SECRET_KEY", "secret_key")
-MASTER_KEY = os.getenv("MASTER_KEY", "master_key")
-HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
-API_PORT = os.getenv("API_PORT", 11300)
-API_HOST = os.getenv("API_HOST", "localhost")
 
 # Database functions
 def get_db():
@@ -88,6 +96,30 @@ async def get_current_user(authorization: HTTPAuthorizationCredentials = Depends
     except:
         raise HTTPException(status_code=403, detail="Forbidden")
 
+# Celery task for transcription
+@celery_app.task(name="transcribe_file")
+def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
+    try:
+        temp_mp3_path = convert_to_mp3(temp_video_path)
+        run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers)
+        output_files = read_output_files()
+        result = {
+            "status": "success",
+            "vtt_content": output_files["vtt_content"],
+            "txt_content": output_files["txt_content"],
+            "json_content": output_files["json_content"],
+            "srt_content": output_files["srt_content"],
+            "vtt_path": output_files["vtt_path"],
+            "txt_path": output_files["txt_path"],
+            "json_path": output_files["json_path"],
+            "srt_path": output_files["srt_path"]
+        }
+        return result
+    
+    except Exception as e:
+        logging.error(f"An error occurred: {str(e)}")
+        raise e
+
 # API Endpoints
 @app.get("/")
 def read_root():
@@ -118,97 +150,68 @@ def create_user(username: str, password: str, master_key: str = Query(...)):
         conn.close()
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
 
-def create_directories():
-    if not os.path.exists('./temp'):
-        os.makedirs('./temp')
-    if not os.path.exists('./data'):
-        os.makedirs('./data')
-
-def save_uploaded_file(file):
-    temp_video_path = f"./temp/{file.filename}"
-    with open(temp_video_path, "wb") as buffer:
-        buffer.write(file.file.read())
-    return temp_video_path
-
-def convert_to_mp3(file_path):
-    temp_mp3_path = os.path.splitext(file_path)[0] + ".mp3"
-    subprocess.run(["ffmpeg", "-y", "-i", file_path, temp_mp3_path], check=True)
-    return temp_mp3_path
-
-def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers):
-    output_dir = "./data/"
-    cmd = f"whisperx {temp_mp3_path} --model {model} --language {lang} --hf_token {HF_TOKEN} --output_format all --output_dir {output_dir}  --align_model WAV2VEC2_ASR_LARGE_LV60K_960H --diarize --min_speakers {min_speakers} --max_speakers {max_speakers}"
-    subprocess.run(cmd.split(), check=True)
-
-def read_output_files():
-    output_dir = "./data/"
-    vtt_path = [f for f in os.listdir(output_dir) if f.endswith(".vtt")][0]
-    txt_path = [f for f in os.listdir(output_dir) if f.endswith(".txt")][0]
-
-    with open(os.path.join(output_dir, vtt_path), "r") as vtt_file:
-        vtt_content = vtt_file.read()
-
-    with open(os.path.join(output_dir, txt_path), "r") as txt_file:
-        txt_content = txt_file.read()
-
-    return vtt_content, txt_content, vtt_path, txt_path
-
-def zip_files(vtt_path, txt_path):
-    memory_file = BytesIO()
-    with ZipFile(memory_file, 'w') as zf:
-        zf.write(os.path.join("./data/", vtt_path), vtt_path)
-        zf.write(os.path.join("./data/", txt_path), txt_path)
-    memory_file.seek(0)
-    return memory_file
-
-
-@app.post("/whisperx-transcribe/")
-async def generate_transcription(
+@app.post("/jobs")
+async def create_transcription_job(
     current_user: dict = Depends(get_current_user),
     lang: LanguageEnum = Form(LanguageEnum.pt, description="Language for transcription"),
-    model: ModelEnum = Form(ModelEnum.large, description="Model for transcription"),
+    model: ModelEnum = Form(ModelEnum.largeV3, description="Model for transcription"),
     min_speakers: int = Form(1, description="Minimum number of speakers"),
     max_speakers: int = Form(2, description="Maximum number of speakers"),
-    response_type: ResponseTypeEnum = Query(ResponseTypeEnum.json, description="Type of the response, either 'json' or 'file"),
     file: UploadFile = None,
 ):
-    start_time = datetime.now()
-
     try:
         create_directories()
         temp_video_path = save_uploaded_file(file)
-        temp_mp3_path = convert_to_mp3(temp_video_path)
-        run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers)
-        vtt_content, txt_content, vtt_path, txt_path = read_output_files()
-
-        end_time = datetime.now()
-        elapsed_time = end_time - start_time
-
-        response_dict = {"status": "success", "total_time": str(elapsed_time)}
-
-        if response_type == 'file':
-            # Create zip file
-            memory_file = zip_files(vtt_path, txt_path)
-            
-            # Create custom zip file name
-            original_file_name, _ = os.path.splitext(file.filename)
-            zip_file_name = f"{original_file_name}_transcribed.zip"
-
-            return StreamingResponse(
-                memory_file, 
-                media_type="application/x-zip-compressed", 
-                headers={"Content-Disposition": f"attachment; filename={zip_file_name}"}
-            )
-        else:
-            response_dict.update({"vtt_content": vtt_content, "text_content": txt_content})
-
-        return response_dict
-
+        task = transcribe_file.delay(temp_video_path, lang, model, min_speakers, max_speakers)
+        return {"task_id": task.id, "status": "PENDING"}
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/jobs")
+async def list_jobs(current_user: dict = Depends(get_current_user)):
+    tasks = celery_app.control.inspect().active()
+    jobs = []
+    for worker, task_list in tasks.items():
+        for task in task_list:
+            jobs.append({"task_id": task["id"], "status": task["state"]})
+    return jobs
+
+@app.get("/jobs/{task_id}")
+async def get_job_status(task_id: str, current_user: dict = Depends(get_current_user)):
+    task_result = celery_app.AsyncResult(task_id)
+    if task_result.state == states.PENDING:
+        response = {
+            "task_id": task_id,
+            "status": task_result.state,
+        }
+    elif task_result.state == states.FAILURE:
+        response = {
+            "task_id": task_id,
+            "status": task_result.state,
+            "error": str(task_result.result),
+        }
+    else:
+        response = {
+            "task_id": task_id,
+            "status": task_result.state,
+            "result": task_result.result,
+        }
+    return response
+
+@app.post("/jobs/{task_id}/stop")
+async def stop_job(task_id: str, current_user: dict = Depends(get_current_user)):
+    celery_app.control.revoke(task_id, terminate=True)
+    return {"task_id": task_id, "status": "STOPPED"}
 
 if __name__ == "__main__":
     import uvicorn
+    from multiprocessing import Process
+
+    def start_celery_worker():
+        subprocess.run(["celery", "-A", "api_whisperx.celery_app", "worker", "--loglevel=info"])
+
+    celery_process = Process(target=start_celery_worker)
+    celery_process.start()
+
     uvicorn.run(app, host=API_HOST, port=int(API_PORT))

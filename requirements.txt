@@ -2,3 +2,5 @@ fastapi
 requests
 streamlit
 python-dotenv
+PyJWT
+celery
