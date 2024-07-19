@@ -7,7 +7,7 @@ dotenv.load_dotenv()
 
 
 API_PORT = os.getenv("API_PORT", 11300)
-API_HOST = os.getenv("API_HOST", "localhost")
+API_HOST = os.getenv("API_HOST", "0.0.0.0")
 
 BROKER_URL = os.getenv("RABBIT_MQ_URI", "amqp://guest:guest@localhost:5672//")
 
