@@ -7,3 +7,5 @@ celery
 pytest-mock
 pytest
 pytest-asyncio
+sqlalchemy
+whisperx
