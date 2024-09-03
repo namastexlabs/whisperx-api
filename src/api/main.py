@@ -3,9 +3,8 @@ import sys
 import os
 import subprocess
 from src.api.config import API_HOST, API_PORT
-from fastapi import FastAPI, Depends, HTTPException, Query, Form, UploadFile
-from src.api.database import get_db
-from src.api.models import LanguageEnum, ModelEnum, ResponseTypeEnum
+from fastapi import FastAPI, HTTPException, Form, UploadFile
+from src.api.models import LanguageEnum, ModelEnum
 from src.api.tasks import transcribe_file, celery_app
 from src.utils.file_utils import create_directories, save_uploaded_file
 from celery import states
@@ -29,16 +28,6 @@ logging.basicConfig(level=logging.INFO)
 @app.get("/")
 def read_root():
     return {"info": "WhisperX API"}
-
-
-@app.post("/auth")
-def auth_endpoint(username: str, password: str):
-    return auth(username, password)
-
-
-@app.post("/create_user")
-def create_user_endpoint(username: str, password: str, master_key: str = Query(...)):
-    return create_user(username, password, master_key)
 
 
 @app.post("/jobs")
