@@ -8,6 +8,10 @@ class LanguageEnum(str, Enum):
     fr = "fr"
     it = "it"
     de = "de"
+    uk = "uk"
+    ja = "ja"
+    nl = "nl"
+    zh = "zh"
 
 
 class ModelEnum(str, Enum):
