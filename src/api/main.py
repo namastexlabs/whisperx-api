@@ -34,8 +34,8 @@ def read_root():
 async def create_transcription_job(
         lang: LanguageEnum = Form(LanguageEnum.pt, description="Language for transcription"),
         model: ModelEnum = Form(ModelEnum.largeV3, description="Model for transcription"),
-        min_speakers: int = Form(1, description="Minimum number of speakers"),
-        max_speakers: int = Form(2, description="Maximum number of speakers"),
+        min_speakers: int = Form(0, description="Minimum number of speakers"),
+        max_speakers: int = Form(0, description="Maximum number of speakers"),
         file: UploadFile = None,
 ):
     try:

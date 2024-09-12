@@ -9,11 +9,12 @@ celery_app = Celery(
     "whisperx-tasks", backend="db+sqlite:///celery.db", broker=BROKER_URL
 )
 
+
 @celery_app.task(name="transcribe_file")
 def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
     try:
         logging.info(f"Starting transcription task with video path: {temp_video_path}")
-        
+
         if not os.path.exists(temp_video_path):
             logging.error(f"File not found: {temp_video_path}")
             raise FileNotFoundError(f"File not found: {temp_video_path}")
@@ -23,7 +24,7 @@ def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
         logging.info(f"Conversion complete. MP3 path: {temp_mp3_path}")
 
         base_name = os.path.splitext(os.path.basename(temp_mp3_path))[0]
-        
+
         # Ensure base_name is logged and working directory is correct
         logging.info(f"Base name for transcription: {base_name}")
 
