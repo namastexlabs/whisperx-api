@@ -15,7 +15,7 @@ def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers):
                "--align_model", "WAV2VEC2_ASR_LARGE_LV60K_960H",
                "--diarize",
                "--min_speakers", min_speakers,
-               "--max_speakers" max_speakers]
+               "--max_speakers", max_speakers]
     else:
         cmd = ["whisperx", temp_mp3_path,
                "--model", model,
