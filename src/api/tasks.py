@@ -11,7 +11,7 @@ celery_app = Celery(
 
 
 @celery_app.task(name="transcribe_file")
-def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
+def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers, prompt):
     try:
         logging.info(f"Starting transcription task with video path: {temp_video_path}")
 
@@ -28,7 +28,7 @@ def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
         # Ensure base_name is logged and working directory is correct
         logging.info(f"Base name for transcription: {base_name}")
 
-        run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers)
+        run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers, prompt)
         logging.info(f"WhisperX transcription completed for base: {base_name}")
 
         output_files = read_output_files(base_name)
@@ -45,7 +45,7 @@ def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers):
             "json_path": output_files["json_path"],
             "srt_path": output_files["srt_path"],
         }
-        logging.info(f"Task result: {result}")
+        #logging.info(f"Task result: {result}")
         return result
 
     except Exception as e:

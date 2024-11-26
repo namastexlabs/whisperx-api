@@ -2,6 +2,8 @@ import logging
 import sys
 import os
 import subprocess
+from typing import Optional
+
 from src.api.config import API_HOST, API_PORT
 from fastapi import FastAPI, HTTPException, Form, UploadFile
 from src.api.models import LanguageEnum, ModelEnum
@@ -37,12 +39,13 @@ async def create_transcription_job(
         min_speakers: int = Form(0, description="Minimum number of speakers"),
         max_speakers: int = Form(0, description="Maximum number of speakers"),
         file: UploadFile = None,
+        prompt: Optional[str] = Form(None, description="Prompt to guide the transcription (optional)")
 ):
     try:
         create_directories()
         temp_video_path = save_uploaded_file(file)
         task = transcribe_file.delay(
-            temp_video_path, lang, model, min_speakers, max_speakers
+            temp_video_path, lang, model, min_speakers, max_speakers, prompt
         )
         return {"task_id": task.id, "status": "PENDING"}
     except Exception as e:
