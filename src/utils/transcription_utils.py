@@ -18,10 +18,6 @@ def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers, prompt)
         "--align_model", "WAV2VEC2_ASR_LARGE_LV60K_960H"
     ]
 
-    # Include the Hugging Face token if needed
-    if HF_TOKEN:
-        cmd.extend(["--hf_token", HF_TOKEN])
-
     # Include the prompt if provided
     if prompt:
         prompt_with_quotes = f'"{prompt}"'
@@ -29,6 +25,7 @@ def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers, prompt)
 
     # Add diarization options if applicable
     if min_speakers > 0 and max_speakers > 0:
+        cmd.extend(["--hf_token", HF_TOKEN])
         cmd.extend([
             "--diarize",
             "--min_speakers", str(min_speakers),
