@@ -1,4 +1,3 @@
-gitfastapi
 requests
 streamlit
 python-dotenv
