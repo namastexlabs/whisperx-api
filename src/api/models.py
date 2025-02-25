@@ -11,6 +11,7 @@ class LanguageEnum(str, Enum):
     da = "da"  # Danish
     nl = "nl"  # Dutch
     en = "en"  # English
+    tl = "tl"  # Filipino
     fi = "fi"  # Finnish
     fr = "fr"  # French
     gl = "gl"  # Galician
