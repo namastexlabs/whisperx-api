@@ -49,6 +49,7 @@ class ModelEnum(str, Enum):
     medium = "medium"
     largeV2 = "large-v2"
     largeV3 = "large-v3"
+    largeV3Turbo = "large-v3-turbo"
 
 
 class ResponseTypeEnum(str, Enum):
