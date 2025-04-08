@@ -8,3 +8,6 @@ pytest
 pytest-asyncio
 sqlalchemy
 whisperx
+uvicorn
+fastapi
+python-multipart
