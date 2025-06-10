@@ -4,11 +4,16 @@ from src.api.config import BROKER_URL
 from celery import Celery
 from src.utils.file_utils import convert_to_mp3, read_output_files
 from src.utils.transcription_utils import run_whisperx
+from celery.signals import setup_logging
 
 celery_app = Celery(
     "whisperx-tasks", backend="db+sqlite:///celery.db", broker=BROKER_URL
 )
 
+@setup_logging.connect
+def configure_celery_logging(**kwargs):
+    # Suppress task success logging
+    logging.getLogger("celery.app.trace").setLevel(logging.WARNING)
 
 @celery_app.task(name="transcribe_file")
 def transcribe_file(temp_video_path, lang, model, min_speakers, max_speakers, prompt):
