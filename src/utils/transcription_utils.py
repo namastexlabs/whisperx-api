@@ -15,7 +15,8 @@ def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers, prompt)
         "--language", lang,
         "--output_format", "all",
         "--output_dir", output_dir,
-        "--align_model", "WAV2VEC2_ASR_LARGE_LV60K_960H"
+        "--align_model", "WAV2VEC2_ASR_LARGE_LV60K_960H",
+        "--verbose", "False"
     ]
 
     # Include the prompt if provided
