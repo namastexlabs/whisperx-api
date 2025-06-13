@@ -34,6 +34,7 @@ def run_whisperx(temp_mp3_path, lang, model, min_speakers, max_speakers, prompt)
         ])
 
     # Log the command for debugging
+    print(f"WHISPERX COMMAND: {' '.join(cmd)}", flush=True)
     logging.info(f"Running whisperx command: {' '.join(cmd)}")
 
     # Run the command
