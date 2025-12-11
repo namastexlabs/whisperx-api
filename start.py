@@ -1,4 +1,3 @@
-import os
 import subprocess
 from multiprocessing import Process
 from src.api.config import API_HOST, API_PORT

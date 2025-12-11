@@ -1,5 +1,6 @@
 import os
 import subprocess
+import logging
 from zipfile import ZipFile
 from io import BytesIO
 
@@ -16,11 +17,26 @@ def save_uploaded_file(file):
         buffer.write(file.file.read())
     return temp_video_path
 
-def convert_to_mp3(file_path):
-    temp_mp3_path = os.path.splitext(file_path)[0] + ".mp3"
-    subprocess.run(["ffmpeg", "-y", "-i", file_path, temp_mp3_path], check=True)
-    return temp_mp3_path
+#def convert_to_mp3(file_path):
+#    temp_mp3_path = os.path.splitext(file_path)[0] + ".mp3"
+#    subprocess.run(["ffmpeg", "-y", "-i", file_path, temp_mp3_path], check=True)
+#    return temp_mp3_path
 
+def convert_to_mp3(file_path):
+    # Check if the file is already an MP3
+    if os.path.splitext(file_path)[1].lower() != ".mp3":
+        temp_mp3_path = os.path.splitext(file_path)[0] + ".mp3"
+        try:
+            logging.info(f"Converting {file_path} to {temp_mp3_path}")
+            subprocess.run(["ffmpeg", "-y", "-i", file_path, temp_mp3_path], check=True)
+            logging.info(f"Conversion to MP3 successful: {temp_mp3_path}")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"ffmpeg conversion failed: {e}")
+            raise
+        return temp_mp3_path
+    else:
+        logging.info(f"File is already in MP3 format: {file_path}")
+        return file_path
 
 def read_output_files(base_name):
     output_dir = "./data/"

@@ -2,11 +2,11 @@ import logging
 import sys
 import os
 import subprocess
-from typing import Optional
-
 from src.api.config import API_HOST, API_PORT
-from fastapi import FastAPI, HTTPException, Form, UploadFile
-from src.api.models import LanguageEnum, ModelEnum
+from fastapi import FastAPI, Depends, HTTPException, Query, Form, UploadFile
+from src.api.auth import auth, get_current_user, create_user
+from src.api.database import get_db
+from src.api.models import LanguageEnum, ModelEnum, ResponseTypeEnum
 from src.api.tasks import transcribe_file, celery_app
 from src.utils.file_utils import create_directories, save_uploaded_file
 from celery import states
@@ -15,6 +15,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
+# Initialize FastAPI and logging
 app = FastAPI(
     title="Whisperx API Wrapper",
     description="Upload a video or audio file and get a transcription in return, max file size is 100MB.",
@@ -32,20 +33,32 @@ def read_root():
     return {"info": "WhisperX API"}
 
 
+@app.post("/auth")
+def auth_endpoint(username: str, password: str):
+    return auth(username, password)
+
+
+@app.post("/create_user")
+def create_user_endpoint(username: str, password: str, master_key: str = Query(...)):
+    return create_user(username, password, master_key)
+
+
 @app.post("/jobs")
 async def create_transcription_job(
-        lang: LanguageEnum = Form(LanguageEnum.pt, description="Language for transcription"),
-        model: ModelEnum = Form(ModelEnum.largeV3, description="Model for transcription"),
-        min_speakers: int = Form(0, description="Minimum number of speakers"),
-        max_speakers: int = Form(0, description="Maximum number of speakers"),
-        file: UploadFile = None,
-        prompt: Optional[str] = Form(None, description="Prompt to guide the transcription (optional)")
+    current_user: dict = Depends(get_current_user),
+    lang: LanguageEnum = Form(
+        LanguageEnum.pt, description="Language for transcription"
+    ),
+    model: ModelEnum = Form(ModelEnum.largeV3, description="Model for transcription"),
+    min_speakers: int = Form(1, description="Minimum number of speakers"),
+    max_speakers: int = Form(2, description="Maximum number of speakers"),
+    file: UploadFile = None,
 ):
     try:
         create_directories()
         temp_video_path = save_uploaded_file(file)
         task = transcribe_file.delay(
-            temp_video_path, lang, model, min_speakers, max_speakers, prompt
+            temp_video_path, lang, model, min_speakers, max_speakers
         )
         return {"task_id": task.id, "status": "PENDING"}
     except Exception as e:
@@ -54,7 +67,7 @@ async def create_transcription_job(
 
 
 @app.get("/jobs")
-async def list_jobs():
+async def list_jobs(current_user: dict = Depends(get_current_user)):
     tasks = celery_app.control.inspect().active()
     jobs = []
     for worker, task_list in tasks.items():
@@ -64,7 +77,7 @@ async def list_jobs():
 
 
 @app.get("/jobs/{task_id}")
-async def get_job_status(task_id: str):
+async def get_job_status(task_id: str, current_user: dict = Depends(get_current_user)):
     task_result = celery_app.AsyncResult(task_id)
     if task_result.state == states.PENDING:
         response = {
@@ -87,7 +100,7 @@ async def get_job_status(task_id: str):
 
 
 @app.post("/jobs/{task_id}/stop")
-async def stop_job(task_id: str):
+async def stop_job(task_id: str, current_user: dict = Depends(get_current_user)):
     celery_app.control.revoke(task_id, terminate=True)
     return {"task_id": task_id, "status": "STOPPED"}
 
@@ -96,12 +109,10 @@ if __name__ == "__main__":
     import uvicorn
     from multiprocessing import Process
 
-
     def start_celery_worker():
         subprocess.run(
-            ["celery", "-A", "src.api.tasks.celery_app", "worker", "--loglevel=info"]
+            ["celery", "-A", "api.main.celery_app", "worker", "--loglevel=info"]
         )
-
 
     celery_process = Process(target=start_celery_worker)
     celery_process.start()

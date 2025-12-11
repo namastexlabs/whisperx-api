@@ -1,87 +1,92 @@
-# Whisperx API Wrapper
+# WhisperX API with Asynchronous Transcription
 
-An API Wrapper for [Whisperx Library](https://github.com/m-bain/whisperX)
+A FastAPI-based web API for asynchronous audio and video transcription using [WhisperX](https://github.com/m-bain/whisperX).
 
 ## Overview
 
-This is a FastAPI application that provides an endpoint for video/audio transcription using the `whisperx` command. The application supports multiple audio and video formats. It performs the transcription, alignment, and diarization of the uploaded media files.
+This project provides an API to upload media files and receive transcriptions, including alignment and speaker diarization. It leverages Celery task queues and RabbitMQ to handle transcription jobs asynchronously, allowing the API to remain responsive while processing resource-intensive tasks in the background.
 
 ## Features
 
-- User Authentication with JWT
+- Asynchronous transcription processing with Celery
+- RabbitMQ message broker integration
 - Support for multiple audio and video formats
-- Diarization support
+- Speaker diarization support
 - Customizable language and model settings
+- Built-in logging
+- Job status tracking via API
 
 ## Requirements
 
-- whisperx
 - Python 3.8+
+- [WhisperX](https://github.com/m-bain/whisperX)
 - FastAPI
 - ffmpeg
-- SQLite
-- pyjwt
-- dotenv
+- SQLite (for internal use, not user management)
+- python-dotenv
+- Celery
+- RabbitMQ server
 
-Follow the instructions on how to install Whisperx [in the official repository](https://github.com/m-bain/whisperX#3-install-this-repo)
-You can install these dependencies using the `requirements.txt` file:
+### Installing dependencies
+
+Follow the WhisperX installation instructions: [WhisperX repo](https://github.com/m-bain/whisperX#3-install-this-repo)
+
+Then install Python dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
+### RabbitMQ installation
+
+RabbitMQ is required as the message broker for Celery. On Ubuntu, install it via:
+
+```bash
+sudo apt-get update
+sudo apt-get install rabbitmq-server -y
+sudo systemctl enable --now rabbitmq-server
+```
+
+Ensure RabbitMQ is running before starting the application.
+
 ## Environment Variables
 
-Create a `.env` file in your root directory and add the following variables:
+Create a `.env` file in your project root with:
 
 ```env
-SECRET_KEY=your_secret_key
-MASTER_KEY=your_master_key
 HUGGING_FACE_TOKEN=your_hugging_face_token
 API_PORT=11300
 ```
 
-## Database Setup
-
-SQLite is used for storing user information. The database is created automatically when the application runs.
-
 ## Running the Application
 
-Run the application using:
+### 1. Start the FastAPI server
 
 ```bash
-python api_whisperx.py
+python start.py
 ```
 
-Replace `main` with the name of your Python file if it's not `main.py`.
+This launches the API server (default on port 11300).
+
 
 ## API Endpoints
 
-### POST `/auth`
+### POST `/jobs`
 
-Authenticate a user and return a JWT token.
+Submit a new transcription job with an uploaded media file.
 
-- `username`: The username of the user.
-- `password`: The password of the user.
+### GET `/jobs`
 
-### POST `/create_user`
+List all submitted transcription jobs.
 
-Create a new user.
+### GET `/jobs/{task_id}`
 
-- `username`: Desired username.
-- `password`: Desired password.
-- `master_key`: Master key for authorized user creation.
-
-### POST `/whisperx-transcribe/`
-
-Transcribe an uploaded audio or video file.
-
-- `file`: The audio or video file to transcribe.
-- `lang`: Language for transcription (default is "pt").
-- `model`: Model to use for transcription (default is "large-v2").
-- `min_speakers`: Minimum number of speakers for diarization (default is 1).
-- `max_speakers`: Maximum number of speakers for diarization (default is 2).
+Get the status and result of a specific transcription job.
 
 ## Logging
 
-The application has built-in logging that informs about the steps being performed and any errors that occur.
+The application logs key events and errors during API requests and background task processing.
+
+## Summary
+
+This project provides a scalable, asynchronous API for audio/video transcription using WhisperX, with support for speaker diarization and job status tracking.
