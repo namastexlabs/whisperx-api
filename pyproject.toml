@@ -51,13 +51,6 @@ Homepage = "https://github.com/namastexlabs/whisperx-api"
 Repository = "https://github.com/namastexlabs/whisperx-api.git"
 Issues = "https://github.com/namastexlabs/whisperx-api/issues"
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-asyncio>=0.21",
-    "ruff>=0.1",
-    "mypy>=1.0",
-]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -102,8 +95,10 @@ testpaths = ["tests"]
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
+    "mypy>=1.0",
     "pre-commit>=4.5.0",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
+    "ruff>=0.8",
 ]

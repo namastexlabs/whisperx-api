@@ -128,7 +128,7 @@ def check_gpu() -> DependencyStatus:
 
         device_count = torch.cuda.device_count()
         gpus = []
-        total_memory = 0
+        total_memory = 0.0
 
         for i in range(device_count):
             props = torch.cuda.get_device_properties(i)

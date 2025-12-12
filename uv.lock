@@ -2387,21 +2387,15 @@ dependencies = [
     { name = "whisperx" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "httpx" },
+    { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
@@ -2410,16 +2404,12 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.100" },
     { name = "httpx", specifier = ">=0.25" },
     { name = "imageio-ffmpeg", specifier = ">=0.4.9" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "omegaconf", specifier = ">=2.3.0" },
     { name = "pyannote-audio", specifier = ">=4.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1" },
     { name = "speechbrain", git = "https://github.com/speechbrain/speechbrain.git?rev=1e32ef89605049c6f0ccf777192847a719a298ce" },
     { name = "torch", specifier = ">=2.9.0", index = "https://download.pytorch.org/whl/cu126" },
     { name = "torchaudio", specifier = ">=2.8.0", index = "https://download.pytorch.org/whl/cu126" },
@@ -2427,15 +2417,16 @@ requires-dist = [
     { name = "uvicorn", specifier = ">=0.20" },
     { name = "whisperx", git = "https://github.com/namastexlabs/whisperX.git?rev=main" },
 ]
-provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "mypy", specifier = ">=1.0" },
     { name = "pre-commit", specifier = ">=4.5.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "ruff", specifier = ">=0.8" },
 ]
 
 [[package]]
