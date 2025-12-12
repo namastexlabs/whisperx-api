@@ -47,12 +47,16 @@ WhisperX API wraps [WhisperX](https://github.com/m-bain/whisperX) in a REST API 
 
 ## 🔮 What's Next
 
-We're a research lab. Stars help us measure what the community wants most.
+We're a research lab. Stars tell us what the community wants — help us prioritize!
 
 <p align="center">
-  <a href="https://github.com/namastexlabs/whisperx-api/stargazers">
-    <img src="https://img.shields.io/github/stars/namastexlabs/whisperx-api?style=for-the-badge&color=f59e0b" alt="GitHub Stars">
+  <a href="https://github.com/namastexlabs/whisperx-api">
+    <img src="https://img.shields.io/badge/⭐_Star_to_unlock-f59e0b?style=for-the-badge" alt="Star to unlock">
   </a>
+</p>
+
+<p align="center">
+  <img src="https://progress-bar.xyz/12/?scale=1000&width=400&color=babaca&suffix=%20/%201000%20⭐" />
 </p>
 
 <p align="center">
