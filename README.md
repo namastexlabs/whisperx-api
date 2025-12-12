@@ -50,8 +50,8 @@ WhisperX API wraps [WhisperX](https://github.com/m-bain/whisperX) in a REST API 
 We're a research lab. Stars tell us what the community wants — help us prioritize!
 
 <p align="center">
-  <a href="https://github.com/namastexlabs/whisperx-api">
-    <img src="https://img.shields.io/badge/⭐_Star_to_unlock-f59e0b?style=for-the-badge" alt="Star to unlock">
+  <a href="https://github.com/namastexlabs/whisperx-api/stargazers">
+    <img src="https://img.shields.io/github/stars/namastexlabs/whisperx-api?style=for-the-badge&label=⭐%20Star%20to%20Unlock&color=f59e0b" alt="Star to unlock">
   </a>
 </p>
 
