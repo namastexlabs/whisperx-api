@@ -366,8 +366,38 @@ def print_dependency_report(statuses: list[DependencyStatus]) -> bool:
         print("  All required dependencies are available.")
     else:
         print("  [ERROR] Required dependencies missing!")
+        print()
+        print("  Run the install script to fix:")
+        print("    curl -fsSL https://raw.githubusercontent.com/namastexlabs/whisperx-api/main/get-whisperx.sh | bash")
+        print()
+        print("  Or continue anyway with: whisperx-api --force")
 
     print("=" * width)
     print()
 
     return all_ok
+
+
+def startup_check(force: bool = False) -> bool:
+    """Run startup dependency check.
+
+    Args:
+        force: If True, continue even if dependencies are missing.
+
+    Returns:
+        True if startup should proceed, False otherwise.
+    """
+    import sys
+
+    statuses = validate_dependencies()
+    all_ok = print_dependency_report(statuses)
+
+    if not all_ok and not force:
+        print("Startup aborted. Use --force to continue anyway.")
+        sys.exit(1)
+
+    if not all_ok and force:
+        print("WARNING: Running with missing dependencies. Some features may not work.")
+        print()
+
+    return True

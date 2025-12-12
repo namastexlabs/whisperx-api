@@ -1,29 +1,214 @@
-# WhisperX API
+<h1 align="center">WhisperX API</h1>
 
-Local WhisperX transcription API with speaker diarization and word-level timestamps.
+<p align="center">
+  <strong>GPU-powered transcription API in one command</strong>
+</p>
+
+<p align="center">
+  <a href="https://pypi.org/project/whisperx-api/">
+    <img src="https://img.shields.io/pypi/v/whisperx-api?style=flat-square&color=00D9FF" alt="PyPI">
+  </a>
+  <a href="https://github.com/namastexlabs/whisperx-api/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/namastexlabs/whisperx-api/ci.yml?style=flat-square" alt="CI">
+  </a>
+  <img src="https://img.shields.io/badge/python-3.12-blue?style=flat-square" alt="Python 3.12">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT License">
+  </a>
+</p>
+
+<p align="center">
+  <a href="#-features">Features</a> •
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-api-reference">API</a> •
+  <a href="#-configuration">Config</a> •
+  <a href="#-development">Development</a>
+</p>
+
+---
+
+Turn any audio into text with speaker labels. No cloud. No limits. Just run:
+
+```bash
+uvx whisperx-api
+```
+
+WhisperX API wraps [WhisperX](https://github.com/m-bain/whisperX) in a REST API with speaker diarization, word-level timestamps, and multiple export formats. Self-hosted alternative to AssemblyAI, Deepgram, and Rev.ai.
 
 ## Features
 
-- **REST API** - Simple HTTP endpoints for transcription
-- **Speaker diarization** - Identify and label multiple speakers
-- **Word-level timestamps** - Precise alignment for each word
-- **Multiple export formats** - SRT, WebVTT, TXT, JSON
-- **Webhook notifications** - Async result delivery
-- **GPU model caching** - Fast subsequent transcriptions after initial load
-- **Background processing** - Non-blocking async transcription
-- **Progress tracking** - Poll for real-time status updates
-
-## Requirements
-
-- **Python 3.12** (exact version required)
-- **NVIDIA GPU** with CUDA 12.6 support
-- **8-16GB VRAM** (for large-v3-turbo model)
-- **ffmpeg** (system-installed or bundled automatically)
-- **HuggingFace token** (only for speaker diarization)
+- **Speaker Diarization** - Identify who said what with pyannote
+- **Word-Level Timestamps** - Precise alignment for every word
+- **Multiple Export Formats** - SRT, WebVTT, TXT, JSON
+- **Webhook Callbacks** - Get notified when transcription completes
+- **GPU Model Caching** - Fast subsequent transcriptions
+- **Background Processing** - Non-blocking async jobs
+- **Progress Tracking** - Poll for real-time status
 
 ## Quick Start
 
-### 1. Install with uv (recommended)
+### Prerequisites
+
+- **NVIDIA GPU** with 8GB+ VRAM (or CPU mode for testing)
+- **CUDA 12.x** drivers installed
+
+### Option A: One-Liner Install (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/namastexlabs/whisperx-api/main/get-whisperx.sh | bash
+```
+
+This installs Python 3.12, uv, checks CUDA, and sets up whisperx-api.
+
+### Option B: Direct Run (if dependencies met)
+
+```bash
+uvx whisperx-api
+```
+
+### Option C: pip install
+
+```bash
+pip install whisperx-api
+whisperx-api
+```
+
+The API starts at `http://localhost:8000`. Swagger docs at `/docs`.
+
+### First Transcription
+
+```bash
+# Get your API key from ~/.config/whisperx-api/.env
+API_KEY=$(grep WHISPERX_API_KEY ~/.config/whisperx-api/.env | cut -d= -f2)
+
+# Transcribe a file
+curl -X POST http://localhost:8000/v1/transcript \
+  -H "Authorization: Bearer $API_KEY" \
+  -F "file=@audio.mp3"
+
+# Check status
+curl http://localhost:8000/v1/transcript/{id} \
+  -H "Authorization: Bearer $API_KEY"
+```
+
+## API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/v1/transcript` | Submit transcription job |
+| `GET` | `/v1/transcript/{id}` | Get transcript status/result |
+| `GET` | `/v1/transcript/{id}/srt` | Export as SRT subtitles |
+| `GET` | `/v1/transcript/{id}/vtt` | Export as WebVTT |
+| `GET` | `/v1/transcript/{id}/txt` | Export as plain text |
+| `GET` | `/v1/transcript/{id}/json` | Export as JSON |
+| `DELETE` | `/v1/transcript/{id}` | Delete transcript |
+| `GET` | `/health` | Health check (no auth) |
+
+### Submit Transcription
+
+**File upload:**
+```bash
+curl -X POST http://localhost:8000/v1/transcript \
+  -H "Authorization: Bearer $API_KEY" \
+  -F "file=@audio.mp3"
+```
+
+**URL download:**
+```bash
+curl -X POST http://localhost:8000/v1/transcript \
+  -H "Authorization: Bearer $API_KEY" \
+  -F "audio_url=https://example.com/audio.mp3"
+```
+
+**With speaker diarization:**
+```bash
+curl -X POST http://localhost:8000/v1/transcript \
+  -H "Authorization: Bearer $API_KEY" \
+  -F "file=@audio.mp3" \
+  -F "speaker_labels=true" \
+  -F "speakers_expected=2"
+```
+
+### Response Format
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "completed",
+  "text": "Hello world, this is a transcription.",
+  "words": [
+    {"text": "Hello", "start": 0, "end": 500, "confidence": 0.98, "speaker": "A"}
+  ],
+  "utterances": [
+    {"speaker": "A", "text": "Hello world...", "start": 0, "end": 3000}
+  ],
+  "language_code": "en"
+}
+```
+
+**Status values:** `queued` → `processing` → `completed` (or `error`)
+
+## Configuration
+
+All settings via environment variables with `WHISPERX_` prefix:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `WHISPERX_API_KEY` | **Yes** | - | API authentication key |
+| `WHISPERX_HOST` | No | `0.0.0.0` | Server bind address |
+| `WHISPERX_PORT` | No | `8000` | Server port |
+| `WHISPERX_MODEL` | No | `large-v3-turbo` | WhisperX model |
+| `WHISPERX_HF_TOKEN` | For diarization | - | HuggingFace token |
+| `WHISPERX_DEVICE` | No | `0` | GPU device index |
+
+### Speaker Diarization Setup
+
+To enable `speaker_labels=true`:
+
+1. **Accept license** at [pyannote/speaker-diarization](https://hf.co/pyannote/speaker-diarization-community-1)
+2. **Get token** at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+3. **Add to config:**
+   ```bash
+   echo "WHISPERX_HF_TOKEN=hf_xxx" >> ~/.config/whisperx-api/.env
+   ```
+
+## Troubleshooting
+
+**CUDA not available:**
+```bash
+# Check NVIDIA driver
+nvidia-smi
+
+# Check PyTorch CUDA
+python -c "import torch; print(torch.cuda.is_available())"
+```
+
+**Out of VRAM:**
+- Use smaller model: `WHISPERX_MODEL=medium`
+- Reduce batch size: `WHISPERX_BATCH_SIZE=8`
+
+**Diarization fails:**
+- Verify HF token: `echo $WHISPERX_HF_TOKEN`
+- Accept license at HuggingFace (link above)
+
+---
+
+## Built On
+
+<p align="center">
+  <a href="https://github.com/m-bain/whisperX">
+    <img src="https://img.shields.io/github/stars/m-bain/whisperX?style=social" alt="WhisperX Stars">
+  </a>
+</p>
+
+This project wraps the incredible [WhisperX](https://github.com/m-bain/whisperX) by [@m-bain](https://github.com/m-bain) - fast automatic speech recognition with word-level timestamps and speaker diarization.
+
+---
+
+<details>
+<summary><h2>Development</h2></summary>
+
+### Setup
 
 ```bash
 git clone https://github.com/namastexlabs/whisperx-api.git
@@ -31,236 +216,21 @@ cd whisperx-api
 uv sync
 ```
 
-### 2. Configure environment
-
-```bash
-cp .env-example .env
-# Edit .env and set WHISPERX_API_KEY
-```
-
-### 3. Start the server
-
-```bash
-whisperx-api
-```
-
-The API will be available at `http://localhost:8000`. API docs at `http://localhost:8000/docs`.
-
-## Configuration
-
-All configuration is via environment variables with `WHISPERX_` prefix:
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `WHISPERX_API_KEY` | **Yes** | - | API authentication key |
-| `WHISPERX_HOST` | No | `0.0.0.0` | Server bind address |
-| `WHISPERX_PORT` | No | `8000` | Server port |
-| `WHISPERX_MODEL` | No | `large-v3-turbo` | WhisperX model size |
-| `WHISPERX_COMPUTE_TYPE` | No | `float16` | Model precision (`float16` or `float32`) |
-| `WHISPERX_BATCH_SIZE` | No | `16` | Transcription batch size |
-| `WHISPERX_DEVICE` | No | `0` | GPU device index (for multi-GPU) |
-| `WHISPERX_LANGUAGE` | No | auto-detect | Default language code (e.g., `en`, `pt`, `es`) |
-| `WHISPERX_HF_TOKEN` | For diarization | - | HuggingFace access token |
-| `WHISPERX_DATA_DIR` | No | `./data` | Data storage directory |
-| `WHISPERX_MAX_UPLOAD_SIZE_MB` | No | `2048` | Max file upload size (2GB) |
-| `WHISPERX_PRELOAD_LANGUAGES` | No | - | Comma-separated languages to preload |
-
-## API Reference
-
-### Authentication
-
-All `/v1/*` endpoints require an API key via the `Authorization` header:
-
-```bash
-Authorization: Bearer your-api-key
-# or simply:
-Authorization: your-api-key
-```
-
-### Endpoints
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `GET` | `/health` | No | Health check |
-| `GET` | `/ready` | No | GPU readiness check |
-| `POST` | `/v1/transcript` | Yes | Submit transcription job |
-| `GET` | `/v1/transcript` | Yes | List all transcripts |
-| `GET` | `/v1/transcript/{id}` | Yes | Get transcript status/result |
-| `GET` | `/v1/transcript/{id}/srt` | Yes | Export as SRT subtitles |
-| `GET` | `/v1/transcript/{id}/vtt` | Yes | Export as WebVTT subtitles |
-| `GET` | `/v1/transcript/{id}/txt` | Yes | Export as plain text |
-| `GET` | `/v1/transcript/{id}/json` | Yes | Export as JSON |
-| `DELETE` | `/v1/transcript/{id}` | Yes | Delete transcript |
-
-### Submit Transcription
-
-**File upload:**
-
-```bash
-curl -X POST http://localhost:8000/v1/transcript \
-  -H "Authorization: Bearer your-api-key" \
-  -F "file=@audio.mp3"
-```
-
-**URL download:**
-
-```bash
-curl -X POST http://localhost:8000/v1/transcript \
-  -H "Authorization: Bearer your-api-key" \
-  -F "audio_url=https://example.com/audio.mp3"
-```
-
-**With options:**
-
-```bash
-curl -X POST http://localhost:8000/v1/transcript \
-  -H "Authorization: Bearer your-api-key" \
-  -F "file=@audio.mp3" \
-  -F "language_code=en" \
-  -F "speaker_labels=true"
-```
-
-### Poll for Status
-
-```bash
-curl http://localhost:8000/v1/transcript/{id} \
-  -H "Authorization: Bearer your-api-key"
-```
-
-**Response:**
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "completed",
-  "progress": 1.0,
-  "text": "Hello world, this is a transcription.",
-  "words": [
-    {"text": "Hello", "start": 0, "end": 500, "confidence": 0.98, "speaker": "A"},
-    {"text": "world", "start": 500, "end": 1000, "confidence": 0.96, "speaker": "A"}
-  ],
-  "utterances": [
-    {
-      "speaker": "A",
-      "text": "Hello world, this is a transcription.",
-      "start": 0,
-      "end": 3000,
-      "confidence": 0.97
-    }
-  ],
-  "confidence": 0.97,
-  "audio_duration": 3000,
-  "language_code": "en"
-}
-```
-
-**Status values:**
-- `queued` - Job submitted, waiting to process
-- `processing` - Transcription in progress
-- `completed` - Done, results available
-- `error` - Failed, check `error` field
-
-## Speaker Diarization
-
-To enable speaker identification:
-
-### 1. Accept the model license
-
-Visit [pyannote/speaker-diarization-community-1](https://hf.co/pyannote/speaker-diarization-community-1) and accept the license.
-
-### 2. Get a HuggingFace token
-
-Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
-
-### 3. Configure the token
-
-```bash
-# In .env
-WHISPERX_HF_TOKEN=hf_your_token_here
-```
-
-### 4. Use speaker_labels
-
-```bash
-curl -X POST http://localhost:8000/v1/transcript \
-  -H "Authorization: Bearer your-api-key" \
-  -F "file=@audio.mp3" \
-  -F "speaker_labels=true" \
-  -F "speakers_expected=2"
-```
-
-## Export Formats
-
-### SRT Subtitles
-
-```bash
-curl http://localhost:8000/v1/transcript/{id}/srt \
-  -H "Authorization: Bearer your-api-key"
-```
-
-```srt
-1
-00:00:00,000 --> 00:00:03,000
-Hello world, this is a transcription.
-
-2
-00:00:03,000 --> 00:00:06,000
-And this is the second sentence.
-```
-
-### WebVTT Subtitles
-
-```bash
-curl http://localhost:8000/v1/transcript/{id}/vtt \
-  -H "Authorization: Bearer your-api-key"
-```
-
-```vtt
-WEBVTT
-
-00:00:00.000 --> 00:00:03.000
-Hello world, this is a transcription.
-
-00:00:03.000 --> 00:00:06.000
-And this is the second sentence.
-```
-
-## Advanced Options
-
-The POST `/v1/transcript` endpoint accepts these optional parameters:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `language_code` | string | auto | Language code (e.g., `en`, `pt`, `es`) |
-| `speaker_labels` | bool | false | Enable speaker diarization |
-| `speakers_expected` | int | - | Expected number of speakers |
-| `min_speakers` | int | - | Minimum speakers |
-| `max_speakers` | int | - | Maximum speakers |
-| `task` | string | transcribe | `transcribe` or `translate` (to English) |
-| `temperature` | float | 0.0 | Sampling temperature (0.0-1.0) |
-| `beam_size` | int | 5 | Beam search size |
-| `initial_prompt` | string | - | Prompt for context |
-| `hotwords` | string | - | Comma-separated words to boost |
-| `word_timestamps` | bool | true | Include word-level timestamps |
-| `webhook_url` | string | - | URL for completion callback |
-| `webhook_auth_header` | string | - | Auth header for webhook |
-
-## Development
-
-### Run tests
+### Run Tests
 
 ```bash
 uv run pytest tests/ -v
 ```
 
-### Code quality
+### Code Quality
 
 ```bash
 uv run ruff check .
+uv run ruff format .
 uv run mypy src/
 ```
 
-### Project structure
+### Project Structure
 
 ```
 whisperx-api/
@@ -273,47 +243,32 @@ whisperx-api/
 │   ├── auth.py            # API authentication
 │   ├── models.py          # Pydantic schemas
 │   ├── deps.py            # Dependency checks
-│   └── main.py            # Entry point
+│   └── main.py            # CLI entry point
 ├── tests/                 # Test suite
-├── pyproject.toml         # Project config
-└── .env-example           # Config template
+├── get-whisperx.sh        # One-liner installer
+└── pyproject.toml         # Project config
 ```
 
-## Performance
+### CI/CD
 
-- **First request:** ~60-90 seconds (model loading)
-- **Subsequent requests:** ~same duration as audio
-- **GPU memory:** ~8-12GB for large-v3-turbo
-- **Concurrent requests:** Queued sequentially per GPU
+- **CI:** Runs on every push (lint, typecheck, test)
+- **Release:** Label PR with `rc` or `stable` to trigger PyPI publish
+- **Version bumping:** Automatic via `scripts/bump_version.py`
 
-## Troubleshooting
+### Performance Notes
 
-### CUDA not available
+- **First request:** ~60-90s (model loading)
+- **Subsequent:** ~same as audio duration
+- **VRAM usage:** ~8-12GB for large-v3-turbo
 
-```bash
-# Check CUDA
-python -c "import torch; print(torch.cuda.is_available())"
+</details>
 
-# Install PyTorch with CUDA
-pip install torch --index-url https://download.pytorch.org/whl/cu126
-```
+---
 
-### Model loading fails
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/namastexlabs">Namastex Labs</a>
+</p>
 
-```bash
-# Clear HuggingFace cache
-rm -rf ~/.cache/huggingface/hub/models--*
-
-# Check GPU memory
-nvidia-smi
-```
-
-### Diarization fails
-
-1. Verify HF token is set: `echo $WHISPERX_HF_TOKEN`
-2. Verify license accepted at [huggingface.co](https://hf.co/pyannote/speaker-diarization-community-1)
-3. Check token has read access
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file.
+<p align="center">
+  <a href="https://github.com/namastexlabs/whisperx-api">Star us on GitHub</a>
+</p>
