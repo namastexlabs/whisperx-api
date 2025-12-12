@@ -1,4 +1,4 @@
-"""FastAPI server for WhisperX transcription."""
+"""FastAPI server for MurmurAI transcription."""
 
 import logging as stdlib_logging
 import sys
@@ -34,9 +34,9 @@ from fastapi import (  # noqa: E402
 )
 from fastapi.responses import JSONResponse, PlainTextResponse  # noqa: E402
 
-from whisperx_api.auth import verify_api_key  # noqa: E402
-from whisperx_api.config import get_settings  # noqa: E402
-from whisperx_api.database import (  # noqa: E402
+from murmurai.auth import verify_api_key  # noqa: E402
+from murmurai.config import get_settings  # noqa: E402
+from murmurai.database import (  # noqa: E402
     create_transcript,
     delete_transcript,
     get_transcript,
@@ -44,15 +44,15 @@ from whisperx_api.database import (  # noqa: E402
     list_transcripts,
     update_transcript,
 )
-from whisperx_api.logging import get_logger, setup_logging  # noqa: E402
-from whisperx_api.models import (  # noqa: E402
+from murmurai.logging import get_logger, setup_logging  # noqa: E402
+from murmurai.models import (  # noqa: E402
     HealthResponse,
     Pagination,
     ReadyResponse,
     Transcript,
     TranscriptList,
 )
-from whisperx_api.transcriber import TranscribeOptions, download_audio, transcribe  # noqa: E402
+from murmurai.transcriber import TranscribeOptions, download_audio, transcribe  # noqa: E402
 
 
 @asynccontextmanager
@@ -67,15 +67,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Security warning for default API key (print for high visibility)
     if settings.api_key == "namastex888":
         print("\n" + "=" * 70)
-        print("[SECURITY] ⚠️  Using default API key 'namastex888'")
-        print("[SECURITY] ⚠️  This key is publicly known - anyone can access your API!")
-        print("[SECURITY] ⚠️  For production, set: WHISPERX_API_KEY=<your-secure-key>")
-        print("[SECURITY] ⚠️  Docs: https://github.com/namastexlabs/whisperx-api#security")
+        print("[SECURITY] Using default API key 'namastex888'")
+        print("[SECURITY] This key is publicly known - anyone can access your API!")
+        print("[SECURITY] For production, set: MURMURAI_API_KEY=<your-secure-key>")
+        print("[SECURITY] Docs: https://github.com/namastexlabs/murmurai#security")
         print("=" * 70 + "\n")
 
     # Run dependency checks (unless skipped)
     if not settings.skip_dependency_check:
-        from whisperx_api.deps import print_dependency_report, validate_dependencies
+        from murmurai.deps import print_dependency_report, validate_dependencies
 
         # Check if diarization is likely to be used (preload_languages implies heavy usage)
         require_diarization = bool(settings.preload_languages)
@@ -83,7 +83,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         if not print_dependency_report(statuses):
             logger.error("Required dependencies missing. See above for install instructions.")
-            logger.error("To skip this check: WHISPERX_SKIP_DEPENDENCY_CHECK=true")
+            logger.error("To skip this check: MURMURAI_SKIP_DEPENDENCY_CHECK=true")
             sys.exit(1)
 
     # Set default CUDA device if available
@@ -93,8 +93,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await init_db()
 
-    # Preload WhisperX model (takes 30-60s but makes first request fast)
-    from whisperx_api.model_manager import ModelManager
+    # Preload model (takes 30-60s but makes first request fast)
+    from murmurai.model_manager import ModelManager
 
     ModelManager.preload()
 
@@ -112,9 +112,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="WhisperX API",
-    version="2.0.0",
-    description="Local WhisperX transcription service with speaker diarization",
+    title="MurmurAI",
+    version="1.0.0",
+    description="GPU-powered transcription service with speaker diarization",
     lifespan=lifespan,
     swagger_ui_parameters={
         "tryItOutEnabled": True,  # Enable "Try it out" by default
@@ -253,7 +253,7 @@ async def submit_transcript(
     audio_url: Annotated[
         str | None, Form(description="URL to download audio from", examples=[""])
     ] = None,
-    # All optional parameters with WhisperX defaults
+    # All optional parameters with defaults
     language_code: Annotated[
         str | None, Form(description="Language code (auto-detect if empty)", examples=[""])
     ] = None,
@@ -407,7 +407,7 @@ async def submit_transcript(
         webhook_auth_header=webhook_auth_header,
     )
 
-    # Build options (all params already have WhisperX defaults from Form)
+    # Build options (all params already have defaults from Form)
     options = TranscribeOptions(
         language=language_code,
         task=task,

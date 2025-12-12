@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Version bump script for whisperx-api releases.
+"""Version bump script for murmurai releases.
 
 Usage:
     python scripts/bump_version.py --action rc      # Bump to next RC
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 PYPROJECT_PATH = Path("pyproject.toml")
-INIT_PATH = Path("src/whisperx_api/__init__.py")
+INIT_PATH = Path("src/murmurai/__init__.py")
 
 
 def get_current_version() -> str:

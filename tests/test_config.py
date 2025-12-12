@@ -32,13 +32,13 @@ def test_max_upload_bytes_property(test_settings):
 
 def test_default_api_key_works(monkeypatch, tmp_path):
     """Test that default API key allows startup without .env."""
-    from whisperx_api.config import get_settings
+    from murmurai.config import get_settings
 
     # Clear cache
     get_settings.cache_clear()
 
     # Remove API key from environment
-    monkeypatch.delenv("WHISPERX_API_KEY", raising=False)
+    monkeypatch.delenv("MURMURAI_API_KEY", raising=False)
 
     # Create empty .env to prevent loading from project .env
     empty_env = tmp_path / ".env"

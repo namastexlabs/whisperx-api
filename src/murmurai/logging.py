@@ -4,7 +4,7 @@ Supports two formats:
 - text: Human-readable output (default, for local development)
 - json: Structured JSON output (for production log aggregation)
 
-Set via WHISPERX_LOG_FORMAT=json environment variable.
+Set via MURMURAI_LOG_FORMAT=json environment variable.
 """
 
 import json
@@ -77,7 +77,7 @@ class TextFormatter(logging.Formatter):
         request_id = get_request_id()
         prefix = f"[{request_id}] " if request_id else ""
 
-        # Format: [whisperx-api] [request_id] message
+        # Format: [murmurai] [request_id] message
         timestamp = datetime.now().strftime("%H:%M:%S")
         base = f"[{timestamp}] [{record.levelname}] {prefix}{record.getMessage()}"
 
@@ -108,9 +108,9 @@ def setup_logging(log_format: str = "text", log_level: str = "INFO") -> logging.
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR)
 
     Returns:
-        Configured root logger for whisperx-api
+        Configured root logger for murmurai
     """
-    logger = logging.getLogger("whisperx-api")
+    logger = logging.getLogger("murmurai")
     logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
 
     # Remove existing handlers
@@ -135,5 +135,5 @@ def setup_logging(log_format: str = "text", log_level: str = "INFO") -> logging.
 
 
 def get_logger() -> logging.Logger:
-    """Get the whisperx-api logger instance."""
-    return logging.getLogger("whisperx-api")
+    """Get the murmurai logger instance."""
+    return logging.getLogger("murmurai")

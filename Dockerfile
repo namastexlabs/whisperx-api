@@ -20,8 +20,8 @@ RUN mkdir -p /app/data
 EXPOSE 8880
 
 # Default environment
-ENV WHISPERX_HOST=0.0.0.0
-ENV WHISPERX_PORT=8880
-ENV WHISPERX_DATA_DIR=/app/data
+ENV MURMURAI_HOST=0.0.0.0
+ENV MURMURAI_PORT=8880
+ENV MURMURAI_DATA_DIR=/app/data
 
-CMD ["whisperx-api"]
+CMD ["murmurai"]

@@ -5,7 +5,7 @@ from typing import Any
 
 import aiosqlite
 
-from whisperx_api.config import get_settings
+from murmurai.config import get_settings
 
 
 async def init_db() -> None:

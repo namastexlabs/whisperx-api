@@ -1,4 +1,4 @@
-"""Shared test fixtures for whisperx-api."""
+"""Shared test fixtures for murmurai."""
 
 from collections.abc import AsyncGenerator
 from pathlib import Path
@@ -12,7 +12,7 @@ from httpx import ASGITransport, AsyncClient
 @pytest.fixture(autouse=True)
 def reset_settings_cache():
     """Reset settings cache between tests."""
-    from whisperx_api.config import get_settings
+    from murmurai.config import get_settings
 
     get_settings.cache_clear()
     yield
@@ -30,18 +30,18 @@ def test_env(test_api_key: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     """Set up test environment variables."""
     # Change to tmp_path to avoid loading project .env file
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("WHISPERX_API_KEY", test_api_key)
-    monkeypatch.setenv("WHISPERX_DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("WHISPERX_HOST", "127.0.0.1")
-    monkeypatch.setenv("WHISPERX_PORT", "8880")
+    monkeypatch.setenv("MURMURAI_API_KEY", test_api_key)
+    monkeypatch.setenv("MURMURAI_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("MURMURAI_HOST", "127.0.0.1")
+    monkeypatch.setenv("MURMURAI_PORT", "8880")
     # Ensure HF token is not inherited from local .env
-    monkeypatch.delenv("WHISPERX_HF_TOKEN", raising=False)
+    monkeypatch.delenv("MURMURAI_HF_TOKEN", raising=False)
 
 
 @pytest.fixture
 def test_settings(test_env):
     """Get settings configured for testing."""
-    from whisperx_api.config import get_settings
+    from murmurai.config import get_settings
 
     return get_settings()
 
@@ -49,7 +49,7 @@ def test_settings(test_env):
 @pytest_asyncio.fixture
 async def initialized_db(test_settings):
     """Initialize database for testing."""
-    from whisperx_api.database import init_db
+    from murmurai.database import init_db
 
     await init_db()
 
@@ -57,7 +57,7 @@ async def initialized_db(test_settings):
 @pytest_asyncio.fixture
 async def async_client(test_env, initialized_db) -> AsyncGenerator[AsyncClient, None]:
     """Create async HTTP client for testing API endpoints."""
-    from whisperx_api.server import app
+    from murmurai.server import app
 
     async with AsyncClient(
         transport=ASGITransport(app=app),

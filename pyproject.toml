@@ -3,15 +3,16 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "whisperx-api"
-version = "2.0.1-rc.2"
-description = "Local WhisperX transcription API with speaker diarization"
+name = "murmurai"
+version = "1.0.0"
+description = "GPU-powered transcription API with speaker diarization"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = {text = "MIT"}
-keywords = ["whisper", "transcription", "speech-to-text", "api", "whisperx"]
+keywords = ["murmurai", "transcription", "speech-to-text", "api", "whisper", "diarization"]
 authors = [
-    {name = "namastexlabs"}
+    {name = "Felipe Rosa"},
+    {name = "Namastex Labs"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -24,8 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
-    # Use our modernized whisperX fork with pyannote 4.x + torch 2.6+ compatibility
-    "whisperx @ git+https://github.com/namastexlabs/whisperX.git@main",
+    "murmurai-core>=1.0.0",
     "torch>=2.9.0",
     "fastapi>=0.100",
     "uvicorn>=0.20",
@@ -44,19 +44,15 @@ dependencies = [
 ]
 
 [project.scripts]
-whisperx-api = "whisperx_api.main:run"
+murmurai = "murmurai.main:run"
 
 [project.urls]
-Homepage = "https://github.com/namastexlabs/whisperx-api"
-Repository = "https://github.com/namastexlabs/whisperx-api.git"
-Issues = "https://github.com/namastexlabs/whisperx-api/issues"
-
-
-[tool.hatch.metadata]
-allow-direct-references = true
+Homepage = "https://github.com/namastexlabs/murmurai"
+Repository = "https://github.com/namastexlabs/murmurai.git"
+Issues = "https://github.com/namastexlabs/murmurai/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/whisperx_api"]
+packages = ["src/murmurai"]
 
 [tool.uv]
 managed = true
@@ -86,7 +82,7 @@ python_version = "3.12"
 strict = false
 warn_unused_ignores = false
 ignore_missing_imports = true
-disable_error_code = ["import-untyped", "no-untyped-def"]
+disable_error_code = ["import-untyped", "no-untyped-def", "attr-defined"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

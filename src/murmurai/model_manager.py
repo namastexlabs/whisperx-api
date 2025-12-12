@@ -1,21 +1,20 @@
-"""GPU model singleton manager for WhisperX models."""
+"""GPU model singleton manager for transcription models."""
 
 import threading
 from typing import Any
 
 import torch
-
-# Import whisperx FIRST - the fork's compat.py applies all patches automatically
-# (torch 2.6+, pyannote 4.x, torchaudio 2.9+)
-import whisperx
 from pyannote.audio import Pipeline
 
-from whisperx_api.config import get_settings
-from whisperx_api.logging import get_logger
+# Import murmurai FIRST - the fork's compat.py applies all patches automatically
+# (torch 2.6+, pyannote 4.x, torchaudio 2.9+)
+import murmurai as murmurai_core  # type: ignore[import-untyped]
+from murmurai.config import get_settings
+from murmurai.logging import get_logger
 
 
 class ModelManager:
-    """Singleton manager for WhisperX GPU models.
+    """Singleton manager for GPU models.
 
     Ensures models are loaded only once and shared across requests.
     GPU model loading takes 30-60s, so we cache them.
@@ -28,7 +27,7 @@ class ModelManager:
 
     @classmethod
     def get_model(cls) -> Any:
-        """Get or load the main WhisperX transcription model.
+        """Get or load the main transcription model.
 
         Note: Uses "cuda" not "cuda:N" because faster_whisper/ctranslate2
         doesn't support device index in string. torch.cuda.set_device()
@@ -38,15 +37,13 @@ class ModelManager:
             if cls._model is None:
                 settings = get_settings()
                 logger = get_logger()
-                logger.info(
-                    f"Loading WhisperX model: {settings.model} ({settings.compute_type})..."
-                )
-                cls._model = whisperx.load_model(
+                logger.info(f"Loading model: {settings.model} ({settings.compute_type})...")
+                cls._model = murmurai_core.load_model(
                     settings.model,
                     device="cuda",
                     compute_type=settings.compute_type,
                 )
-                logger.info("WhisperX model loaded successfully")
+                logger.info("Model loaded successfully")
             return cls._model
 
     @classmethod
@@ -57,7 +54,7 @@ class ModelManager:
                 logger = get_logger()
                 logger.info(f"Loading alignment model for language: {language}...")
                 try:
-                    model, metadata = whisperx.load_align_model(
+                    model, metadata = murmurai_core.load_align_model(
                         language_code=language,
                         device="cuda",
                     )
@@ -83,7 +80,7 @@ class ModelManager:
 
         Requires HuggingFace token and license acceptance:
         1. Accept license at https://hf.co/{model_name}
-        2. Set WHISPERX_HF_TOKEN in .env
+        2. Set MURMURAI_HF_TOKEN in .env
         """
         with cls._lock:
             if model_name not in cls._diarize_models:
@@ -101,7 +98,7 @@ class ModelManager:
                         f"Failed to load diarization model '{model_name}'. "
                         f"This model is gated on HuggingFace.\n"
                         f"1. Accept license at https://hf.co/{model_name}\n"
-                        "2. Set WHISPERX_HF_TOKEN in .env with your HuggingFace token\n"
+                        "2. Set MURMURAI_HF_TOKEN in .env with your HuggingFace token\n"
                         "   Get token at: https://hf.co/settings/tokens"
                     )
 

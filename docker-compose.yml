@@ -1,12 +1,12 @@
 services:
-  whisperx-api:
+  murmurai:
     build: .
     ports:
       - "8880:8880"
     environment:
-      - WHISPERX_API_KEY=${WHISPERX_API_KEY:-namastex888}
-      - WHISPERX_HF_TOKEN=${WHISPERX_HF_TOKEN:-}
-      - WHISPERX_LOG_FORMAT=${WHISPERX_LOG_FORMAT:-text}
+      - MURMURAI_API_KEY=${MURMURAI_API_KEY:-namastex888}
+      - MURMURAI_HF_TOKEN=${MURMURAI_HF_TOKEN:-}
+      - MURMURAI_LOG_FORMAT=${MURMURAI_LOG_FORMAT:-text}
     volumes:
       # Persist transcripts database
       - ./data:/app/data

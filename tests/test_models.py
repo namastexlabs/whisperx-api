@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from whisperx_api.models import (
+from murmurai.models import (
     HealthResponse,
     Pagination,
     ReadyResponse,
@@ -33,7 +33,7 @@ class TestTranscriptParams:
         assert params.speakers_expected == 2
 
     def test_minimal_params(self):
-        """Test params with WhisperX defaults (for file upload case)."""
+        """Test params with MurmurAI defaults (for file upload case)."""
         params = TranscriptParams()
         assert params.audio_url is None
         assert params.language_code is None
@@ -44,7 +44,7 @@ class TestTranscriptParams:
         assert params.beam_size == 5
 
     def test_all_transcription_params(self):
-        """Test all whisperx transcription parameters."""
+        """Test all murmurai transcription parameters."""
         params = TranscriptParams(
             audio_url="https://example.com/audio.mp3",
             language_code="en",
@@ -59,7 +59,7 @@ class TestTranscriptParams:
             patience=1.5,
             length_penalty=0.8,
             initial_prompt="This is a meeting.",
-            hotwords="WhisperX,transcription",
+            hotwords="MurmurAI,transcription",
             word_timestamps=True,
             return_char_alignments=True,
             suppress_numerals=True,

@@ -9,7 +9,7 @@ class TranscriptParams(BaseModel):
     """Request body for creating a transcript.
 
     Supports both URL and file upload (file handled separately in endpoint).
-    All parameters use WhisperX defaults.
+    All parameters use sensible defaults.
     """
 
     # Audio source (URL - file upload handled via multipart form)
@@ -40,7 +40,7 @@ class TranscriptParams(BaseModel):
     initial_prompt: str | None = Field(None, description="Prompt for first transcription window")
     hotwords: str | None = Field(None, description="Comma-separated words to boost recognition")
 
-    # Decoding parameters (WhisperX defaults)
+    # Decoding parameters (defaults)
     temperature: float = Field(0.0, ge=0.0, le=1.0, description="Sampling temperature (0=greedy)")
     temperature_increment_on_fallback: float | None = Field(
         0.2, description="Temperature increase on decode failure (None to disable)"
@@ -64,14 +64,14 @@ class TranscriptParams(BaseModel):
         "nearest", description="Method for interpolating word boundaries"
     )
 
-    # Hallucination filtering (WhisperX defaults)
+    # Hallucination filtering (defaults)
     compression_ratio_threshold: float = Field(2.4, description="Filter high compression segments")
     no_speech_threshold: float = Field(
         0.6, ge=0.0, le=1.0, description="Silence detection threshold"
     )
     condition_on_previous_text: bool = Field(False, description="Use previous output as prompt")
 
-    # VAD parameters (WhisperX defaults)
+    # VAD parameters (defaults)
     vad_method: Literal["pyannote", "silero"] = Field(
         "pyannote", description="VAD algorithm: pyannote (default) or silero (lighter)"
     )

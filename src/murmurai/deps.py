@@ -1,4 +1,4 @@
-"""Startup dependency validation for WhisperX API."""
+"""Startup dependency validation for MurmurAI."""
 
 import ctypes
 import platform
@@ -33,7 +33,7 @@ Or via package manager (Ubuntu/Debian):
 
 For WSL2, CUDA comes from the Windows driver automatically.""",
         "Darwin": """\
-CUDA not available on macOS. WhisperX requires NVIDIA GPU.
+CUDA not available on macOS. MurmurAI requires NVIDIA GPU.
 Consider using a Linux machine or cloud GPU instance (AWS, GCP, Lambda Labs).""",
         "Windows": """\
 CUDA toolkit required. Install from:
@@ -123,7 +123,7 @@ def check_gpu() -> DependencyStatus:
                 name="GPU",
                 available=False,
                 error="No GPU detected",
-                install_hint="WhisperX requires an NVIDIA GPU with CUDA support.",
+                install_hint="MurmurAI requires an NVIDIA GPU with CUDA support.",
             )
 
         device_count = torch.cuda.device_count()
@@ -331,7 +331,7 @@ def print_dependency_report(statuses: list[DependencyStatus]) -> bool:
     # Header
     print()
     print("=" * width)
-    print("  WhisperX API - Dependency Check".center(width))
+    print("  MurmurAI - Dependency Check".center(width))
     print("=" * width)
 
     # Status rows
@@ -367,10 +367,10 @@ def print_dependency_report(statuses: list[DependencyStatus]) -> bool:
         print()
         print("  Run the install script to fix:")
         print(
-            "    curl -fsSL https://raw.githubusercontent.com/namastexlabs/whisperx-api/main/get-whisperx.sh | bash"
+            "    curl -fsSL https://raw.githubusercontent.com/namastexlabs/murmurai/main/get-murmurai.sh | bash"
         )
         print()
-        print("  Or continue anyway with: whisperx-api --force")
+        print("  Or continue anyway with: murmurai --force")
 
     print("=" * width)
     print()

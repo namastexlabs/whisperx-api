@@ -3,7 +3,7 @@
 import pytest
 from fastapi import HTTPException
 
-from whisperx_api.auth import verify_api_key
+from murmurai.auth import verify_api_key
 
 
 @pytest.mark.asyncio

@@ -2,7 +2,7 @@
 
 import pytest
 
-from whisperx_api.database import (
+from murmurai.database import (
     create_transcript,
     delete_transcript,
     get_transcript,

@@ -1,33 +1,33 @@
-"""Main entry point for whisperx-api."""
+"""Main entry point for MurmurAI."""
 
 import argparse
 import sys
 
 import uvicorn
 
-from whisperx_api.config import get_settings
-from whisperx_api.deps import startup_check
+from murmurai.config import get_settings
+from murmurai.deps import startup_check
 
 
 def run() -> None:
     """Main entry point - starts API server."""
     parser = argparse.ArgumentParser(
-        description="WhisperX API - GPU-powered transcription service",
+        description="MurmurAI - GPU-powered transcription service",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
-  whisperx-api                    Start server with default settings
-  whisperx-api --force            Start even if dependencies are missing
-  whisperx-api --skip-check       Skip dependency check entirely
+  murmurai                        Start server with default settings
+  murmurai --force                Start even if dependencies are missing
+  murmurai --skip-check           Skip dependency check entirely
 
 Environment variables:
-  WHISPERX_API_KEY               API authentication key (required)
-  WHISPERX_HOST                  Server bind address (default: 0.0.0.0)
-  WHISPERX_PORT                  Server port (default: 8880)
-  WHISPERX_MODEL                 WhisperX model (default: large-v3-turbo)
-  WHISPERX_HF_TOKEN              HuggingFace token for diarization
+  MURMURAI_API_KEY               API authentication key (required)
+  MURMURAI_HOST                  Server bind address (default: 0.0.0.0)
+  MURMURAI_PORT                  Server port (default: 8880)
+  MURMURAI_MODEL                 Model name (default: large-v3-turbo)
+  MURMURAI_HF_TOKEN              HuggingFace token for diarization
 
-Full docs: https://github.com/namastexlabs/whisperx-api
+Full docs: https://github.com/namastexlabs/murmurai
 """,
     )
     parser.add_argument(
@@ -49,9 +49,9 @@ Full docs: https://github.com/namastexlabs/whisperx-api
     args = parser.parse_args()
 
     if args.version:
-        from whisperx_api import __version__
+        from murmurai import __version__
 
-        print(f"whisperx-api {__version__}")
+        print(f"murmurai {__version__}")
         sys.exit(0)
 
     # Run dependency check unless skipped
@@ -63,14 +63,14 @@ Full docs: https://github.com/namastexlabs/whisperx-api
     # Ensure data directory exists
     settings.data_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"WhisperX API starting on http://{settings.host}:{settings.port}")
+    print(f"MurmurAI starting on http://{settings.host}:{settings.port}")
     print(f"Model: {settings.model}")
     print(f"Data directory: {settings.data_dir}")
     print(f"API docs: http://{settings.host}:{settings.port}/docs")
 
     # Start FastAPI server
     uvicorn.run(
-        "whisperx_api.server:app",
+        "murmurai.server:app",
         host=settings.host,
         port=settings.port,
         reload=False,

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_prefix="WHISPERX_",
+        env_prefix="MURMURAI_",
         case_sensitive=False,
     )
 
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8880
 
-    # WhisperX Model (GPU required)
+    # Model (GPU required)
     model: str = "large-v3-turbo"
     compute_type: str = "float16"
     batch_size: int = 16

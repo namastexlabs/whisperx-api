@@ -1,15 +1,15 @@
-<h1 align="center">WhisperX API</h1>
+<h1 align="center">MurmurAI</h1>
 
 <p align="center">
   <strong>GPU-powered transcription API in one command</strong>
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/whisperx-api/">
-    <img src="https://img.shields.io/pypi/v/whisperx-api?style=flat-square&color=00D9FF" alt="PyPI">
+  <a href="https://pypi.org/project/murmurai/">
+    <img src="https://img.shields.io/pypi/v/murmurai?style=flat-square&color=00D9FF" alt="PyPI">
   </a>
-  <a href="https://github.com/namastexlabs/whisperx-api/actions/workflows/ci.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/namastexlabs/whisperx-api/ci.yml?style=flat-square" alt="CI">
+  <a href="https://github.com/namastexlabs/murmurai/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/namastexlabs/murmurai/ci.yml?style=flat-square" alt="CI">
   </a>
   <img src="https://img.shields.io/badge/python-3.12-blue?style=flat-square" alt="Python 3.12">
   <a href="LICENSE">
@@ -31,10 +31,10 @@
 Turn any audio into text with speaker labels. No cloud. No limits. Just run:
 
 ```bash
-uvx whisperx-api
+uvx murmurai
 ```
 
-WhisperX API wraps [WhisperX](https://github.com/m-bain/whisperX) in a REST API with speaker diarization, word-level timestamps, and multiple export formats. Self-hosted alternative to AssemblyAI, Deepgram, and Rev.ai.
+MurmurAI wraps [murmurai-core](https://pypi.org/project/murmurai-core/) (our WhisperX fork) in a REST API with speaker diarization, word-level timestamps, and multiple export formats. Self-hosted alternative to AssemblyAI, Deepgram, and Rev.ai.
 
 ## Features
 
@@ -46,26 +46,6 @@ WhisperX API wraps [WhisperX](https://github.com/m-bain/whisperX) in a REST API 
 - **Background Processing** - Non-blocking async jobs
 - **Progress Tracking** - Poll for real-time status
 
-## 🔮 What's Next
-
-We're a research lab. Stars tell us what the community wants — help us prioritize!
-
-<p align="center">
-  <a href="https://github.com/namastexlabs/whisperx-api">
-    <img src="https://img.shields.io/github/stars/namastexlabs/whisperx-api?style=for-the-badge&logo=github&label=Star%20to%20Unlock&color=f59e0b" alt="Star to unlock">
-  </a>
-</p>
-
-<p align="center">
-  <img src="https://progress-bar.xyz/27/?scale=1000&width=400&color=babaca&suffix=%20/%201000" />
-</p>
-
-<p align="center">
-  🔒 <b>250</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
-  🔒 <b>500</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
-  🔒 <b>1000</b> Real-time Streaming
-</p>
-
 ## Quick Start
 
 ### Prerequisites
@@ -76,34 +56,34 @@ We're a research lab. Stars tell us what the community wants — help us priorit
 ### Option A: One-Liner Install (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/namastexlabs/whisperx-api/main/get-whisperx.sh | bash
+curl -fsSL https://raw.githubusercontent.com/namastexlabs/murmurai/main/get-murmurai.sh | bash
 ```
 
-This installs Python 3.12, uv, checks CUDA, and sets up whisperx-api.
+This installs Python 3.12, uv, checks CUDA, and sets up murmurai.
 
 ### Option B: Direct Run (if dependencies met)
 
 ```bash
-uvx whisperx-api
+uvx murmurai
 ```
 
 ### Option C: pip install
 
 ```bash
-pip install whisperx-api
-whisperx-api
+pip install murmurai
+murmurai
 ```
 
 ### Option D: Docker (GPU required)
 
 ```bash
 # Clone and run with docker compose
-git clone https://github.com/namastexlabs/whisperx-api.git
-cd whisperx-api
+git clone https://github.com/namastexlabs/murmurai.git
+cd murmurai
 docker compose up
 ```
 
-Requires NVIDIA Container Toolkit. Set `WHISPERX_API_KEY` in environment for production.
+Requires NVIDIA Container Toolkit. Set `MURMURAI_API_KEY` in environment for production.
 
 The API starts at `http://localhost:8880`. Swagger docs at `/docs`.
 
@@ -179,19 +159,19 @@ curl -X POST http://localhost:8880/v1/transcript \
 
 ## Configuration
 
-All settings via environment variables with `WHISPERX_` prefix. Everything has sensible defaults - no `.env` file needed for local use.
+All settings via environment variables with `MURMURAI_` prefix. Everything has sensible defaults - no `.env` file needed for local use.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WHISPERX_API_KEY` | `namastex888` | API authentication key |
-| `WHISPERX_HOST` | `0.0.0.0` | Server bind address |
-| `WHISPERX_PORT` | `8880` | Server port |
-| `WHISPERX_MODEL` | `large-v3-turbo` | WhisperX model |
-| `WHISPERX_DATA_DIR` | `./data` | SQLite database location |
-| `WHISPERX_HF_TOKEN` | - | HuggingFace token (for diarization) |
-| `WHISPERX_DEVICE` | `0` | GPU device index |
-| `WHISPERX_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |
-| `WHISPERX_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
+| `MURMURAI_API_KEY` | `namastex888` | API authentication key |
+| `MURMURAI_HOST` | `0.0.0.0` | Server bind address |
+| `MURMURAI_PORT` | `8880` | Server port |
+| `MURMURAI_MODEL` | `large-v3-turbo` | Whisper model |
+| `MURMURAI_DATA_DIR` | `./data` | SQLite database location |
+| `MURMURAI_HF_TOKEN` | - | HuggingFace token (for diarization) |
+| `MURMURAI_DEVICE` | `0` | GPU device index |
+| `MURMURAI_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |
+| `MURMURAI_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
 ### Speaker Diarization Setup
 
@@ -201,23 +181,23 @@ To enable `speaker_labels=true`:
 2. **Get token** at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
 3. **Add to config:**
    ```bash
-   echo "WHISPERX_HF_TOKEN=hf_xxx" >> ~/.config/whisperx-api/.env
+   echo "MURMURAI_HF_TOKEN=hf_xxx" >> ~/.config/murmurai/.env
    ```
 
 ## Security
 
-### ⚠️ Default API Key Warning
+### Default API Key Warning
 
-WhisperX API ships with a default API key (`namastex888`) for zero-config local use. **This key is publicly known.**
+MurmurAI ships with a default API key (`namastex888`) for zero-config local use. **This key is publicly known.**
 
 **For any network-exposed deployment, set a secure key:**
 
 ```bash
 # Generate a secure random key
-export WHISPERX_API_KEY=$(openssl rand -hex 32)
+export MURMURAI_API_KEY=$(openssl rand -hex 32)
 
 # Or add to your .env file
-echo "WHISPERX_API_KEY=$(openssl rand -hex 32)" >> .env
+echo "MURMURAI_API_KEY=$(openssl rand -hex 32)" >> .env
 ```
 
 The server will display a security warning at startup if using the default key.
@@ -249,18 +229,18 @@ python -c "import torch; print(torch.cuda.is_available())"
 ```
 
 **Out of VRAM:**
-- Use smaller model: `WHISPERX_MODEL=medium`
-- Reduce batch size: `WHISPERX_BATCH_SIZE=8`
+- Use smaller model: `MURMURAI_MODEL=medium`
+- Reduce batch size: `MURMURAI_BATCH_SIZE=8`
 
 **Diarization fails:**
-- Verify HF token: `echo $WHISPERX_HF_TOKEN`
+- Verify HF token: `echo $MURMURAI_HF_TOKEN`
 - Accept license at HuggingFace (link above)
 
 ---
 
 ## Built On
 
-This project wraps the incredible [WhisperX](https://github.com/m-bain/whisperX) by [@m-bain](https://github.com/m-bain) - fast automatic speech recognition with word-level timestamps and speaker diarization.
+This project uses [murmurai-core](https://pypi.org/project/murmurai-core/) - our maintained fork of [WhisperX](https://github.com/m-bain/whisperX) with modern dependency support (PyTorch 2.6+, Pyannote 4.x, Python 3.10-3.13).
 
 ---
 
@@ -270,8 +250,8 @@ This project wraps the incredible [WhisperX](https://github.com/m-bain/whisperX)
 ### Setup
 
 ```bash
-git clone https://github.com/namastexlabs/whisperx-api.git
-cd whisperx-api
+git clone https://github.com/namastexlabs/murmurai.git
+cd murmurai
 uv sync
 ```
 
@@ -292,10 +272,10 @@ uv run mypy src/
 ### Project Structure
 
 ```
-whisperx-api/
-├── src/whisperx_api/
+murmurai/
+├── src/murmurai/
 │   ├── server.py          # FastAPI application
-│   ├── transcriber.py     # WhisperX pipeline
+│   ├── transcriber.py     # Transcription pipeline
 │   ├── model_manager.py   # GPU model caching
 │   ├── database.py        # SQLite persistence
 │   ├── config.py          # Settings management
@@ -304,7 +284,7 @@ whisperx-api/
 │   ├── deps.py            # Dependency checks
 │   └── main.py            # CLI entry point
 ├── tests/                 # Test suite
-├── get-whisperx.sh        # One-liner installer
+├── get-murmurai.sh        # One-liner installer
 └── pyproject.toml         # Project config
 ```
 
@@ -327,7 +307,7 @@ whisperx-api/
 </p>
 
 <p align="center">
-  <a href="https://github.com/namastexlabs/whisperx-api">
-    <img src="https://img.shields.io/github/stars/namastexlabs/whisperx-api?style=social" alt="Star us on GitHub">
+  <a href="https://github.com/namastexlabs/murmurai">
+    <img src="https://img.shields.io/github/stars/namastexlabs/murmurai?style=social" alt="Star us on GitHub">
   </a>
 </p>

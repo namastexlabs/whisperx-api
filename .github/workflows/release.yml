@@ -109,7 +109,7 @@ jobs:
 
       - name: Commit and tag
         run: |
-          git add pyproject.toml src/whisperx_api/__init__.py
+          git add pyproject.toml src/murmurai/__init__.py
           git commit -m "chore: release ${{ steps.bump.outputs.tag }}"
           git tag ${{ steps.bump.outputs.tag }}
           git push origin HEAD --tags

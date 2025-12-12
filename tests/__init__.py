@@ -1,1 +1,1 @@
-"""WhisperX API test suite."""
+"""MurmurAI API test suite."""

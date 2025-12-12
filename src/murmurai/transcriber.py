@@ -1,4 +1,4 @@
-"""WhisperX transcription pipeline wrapper."""
+"""Transcription pipeline wrapper."""
 
 import ipaddress
 import os
@@ -78,7 +78,7 @@ def _ensure_ffmpeg() -> None:
 
         # Create symlink directory with proper 'ffmpeg' name
         # (imageio_ffmpeg binary has versioned name like ffmpeg-linux-x86_64-v7.0.2)
-        symlink_dir = Path(tempfile.gettempdir()) / "whisperx-api-ffmpeg"
+        symlink_dir = Path(tempfile.gettempdir()) / "murmurai-ffmpeg"
         symlink_dir.mkdir(exist_ok=True)
         symlink_path = symlink_dir / "ffmpeg"
 
@@ -94,17 +94,16 @@ def _ensure_ffmpeg() -> None:
         # Note: Can't use logger here - runs before logging is setup
         import sys
 
-        print(f"[whisperx-api] WARNING: Could not setup bundled ffmpeg: {e}", file=sys.stderr)
+        print(f"[murmurai] WARNING: Could not setup bundled ffmpeg: {e}", file=sys.stderr)
 
 
-# Ensure ffmpeg is available BEFORE importing whisperx
+# Ensure ffmpeg is available BEFORE importing murmurai-core
 _ensure_ffmpeg()
 
-import whisperx  # noqa: E402
-
-from whisperx_api.config import get_settings  # noqa: E402
-from whisperx_api.logging import get_logger  # noqa: E402
-from whisperx_api.model_manager import ModelManager  # noqa: E402
+import murmurai as murmurai_core  # type: ignore[import-untyped]  # noqa: E402
+from murmurai.config import get_settings  # noqa: E402
+from murmurai.logging import get_logger  # noqa: E402
+from murmurai.model_manager import ModelManager  # noqa: E402
 
 
 @dataclass
@@ -163,8 +162,8 @@ class TranscribeOptions:
     highlight_words: bool = False
 
 
-def convert_pyannote_to_whisperx(diarization: Any) -> pd.DataFrame:
-    """Convert pyannote Annotation to whisperx diarize_segments format.
+def convert_pyannote_to_murmurai(diarization: Any) -> pd.DataFrame:
+    """Convert pyannote Annotation to diarize_segments format.
 
     Args:
         diarization: pyannote.core.Annotation or pyannote 4.x DiarizeOutput.
@@ -225,7 +224,7 @@ def transcribe(
     options: TranscribeOptions,
     progress_callback: Any = None,
 ) -> dict[str, Any]:
-    """Run WhisperX transcription pipeline.
+    """Run transcription pipeline.
 
     Args:
         audio_path: Path to audio file.
@@ -257,7 +256,7 @@ def transcribe(
     effective_language = options.language or settings.language
 
     # Load audio
-    audio = whisperx.load_audio(str(audio_path))
+    audio = murmurai_core.load_audio(str(audio_path))
 
     if progress_callback:
         progress_callback(0.1)  # Audio loaded
@@ -346,7 +345,7 @@ def transcribe(
     # Align for word-level timestamps (if enabled)
     if options.word_timestamps:
         align_model, metadata = ModelManager.get_align_model(detected_language)
-        result = whisperx.align(
+        result = murmurai_core.align(
             result["segments"],
             align_model,
             metadata,
@@ -372,7 +371,7 @@ def transcribe(
             max_spk = max_spk or options.speakers_expected
 
         # Pass waveform dict to avoid file re-read
-        # pyannote 4.x expects torch Tensor, whisperx returns numpy array
+        # pyannote 4.x expects torch Tensor, murmurai returns numpy array
         import torch
 
         waveform = torch.from_numpy(audio[None, :])
@@ -389,9 +388,9 @@ def transcribe(
                 speaker: emb.tolist() for speaker, emb in diarization.embeddings.items()
             }
 
-        # Convert pyannote output to whisperx format
-        diarize_segments = convert_pyannote_to_whisperx(diarization)
-        result = whisperx.assign_word_speakers(diarize_segments, result)
+        # Convert pyannote output to murmurai format
+        diarize_segments = convert_pyannote_to_murmurai(diarization)
+        result = murmurai_core.assign_word_speakers(diarize_segments, result)
 
     if progress_callback:
         progress_callback(0.95)  # Diarization done
@@ -421,10 +420,10 @@ def format_result(
     language: str,
     speaker_embeddings: dict[str, list[float]] | None = None,
 ) -> dict[str, Any]:
-    """Format WhisperX result to API response format.
+    """Format result to API response format.
 
     Args:
-        result: Raw WhisperX result with segments.
+        result: Raw result with segments.
         language: Detected/specified language code.
         speaker_embeddings: Optional speaker embedding vectors.
 
