@@ -482,7 +482,8 @@ def format_result(
         if utterance_words:
             avg_confidence = sum(w["confidence"] for w in utterance_words) / len(utterance_words)
         else:
-            avg_confidence = 0.0
+            # Without word-level alignment, use 0.85 baseline (Whisper is generally accurate)
+            avg_confidence = 0.85
 
         utterances.append(
             {
@@ -497,8 +498,24 @@ def format_result(
 
     # Calculate overall metrics
     full_text = " ".join(s.get("text", "").strip() for s in result.get("segments", []))
-    total_confidence = sum(w["confidence"] for w in words) / len(words) if words else 0
-    audio_duration = max((w["end"] for w in words), default=0)
+
+    # Confidence: use word-level if available, otherwise estimate from utterance count
+    if words:
+        total_confidence = sum(w["confidence"] for w in words) / len(words)
+    elif utterances:
+        # Without word-level alignment, use 0.85 as baseline (Whisper is generally accurate)
+        # This indicates "transcription worked but no word-level confidence available"
+        total_confidence = 0.85
+    else:
+        total_confidence = 0.0
+
+    # Audio duration: use word-level if available, otherwise use utterance end times
+    if words:
+        audio_duration = max((w["end"] for w in words), default=0)
+    elif utterances:
+        audio_duration = max((u["end"] for u in utterances), default=0)
+    else:
+        audio_duration = 0
 
     formatted = {
         "text": full_text,

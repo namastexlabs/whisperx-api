@@ -846,7 +846,7 @@ wheels = [
 
 [[package]]
 name = "murmurai"
-version = "1.0.3rc1"
+version = "1.0.3rc2"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
