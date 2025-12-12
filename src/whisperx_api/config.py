@@ -1,0 +1,97 @@
+"""Configuration management using pydantic-settings."""
+
+import sys
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic import ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Application configuration from environment variables."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="WHISPERX_",
+        case_sensitive=False,
+    )
+
+    # API Authentication
+    api_key: str  # Required - no default
+
+    # Server
+    host: str = "0.0.0.0"
+    port: int = 8000
+
+    # WhisperX Model (GPU required)
+    model: str = "large-v3-turbo"
+    compute_type: str = "float16"
+    batch_size: int = 16
+    device: int = 0  # GPU index (0, 1, 2, etc. for multi-GPU systems)
+    language: str | None = None  # Default language (None = auto-detect, slower)
+
+    @property
+    def device_str(self) -> str:
+        """CUDA device string (e.g., 'cuda:0', 'cuda:1')."""
+        return f"cuda:{self.device}"
+
+    # HuggingFace (for diarization)
+    hf_token: str | None = None
+
+    # Storage
+    data_dir: Path = Path("./data")
+
+    # Upload limits
+    max_upload_size_mb: int = 2048  # 2GB default
+
+    # Pre-loading
+    preload_languages: list[str] = []
+
+    # Transcription defaults
+    default_task: str = "transcribe"
+    default_temperature: float = 0.0
+    default_beam_size: int = 5
+
+    # VAD defaults
+    default_vad_onset: float = 0.5
+    default_vad_offset: float = 0.363
+    default_chunk_size: int = 30
+
+    # Startup options
+    skip_dependency_check: bool = False  # Skip startup dependency validation
+
+    @property
+    def db_path(self) -> Path:
+        """SQLite database path."""
+        return self.data_dir / "transcripts.db"
+
+    @property
+    def max_upload_bytes(self) -> int:
+        """Maximum upload size in bytes."""
+        return self.max_upload_size_mb * 1024 * 1024
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Get settings instance (cached).
+
+    Provides clear error message when required env vars are missing.
+    """
+    try:
+        return Settings()
+    except ValidationError as e:
+        # Check for missing api_key specifically
+        for error in e.errors():
+            if error["loc"] == ("api_key",):
+                print("\n" + "=" * 60, file=sys.stderr)
+                print("ERROR: WHISPERX_API_KEY environment variable is required.", file=sys.stderr)
+                print("=" * 60, file=sys.stderr)
+                print("\nSet it with:", file=sys.stderr)
+                print("  export WHISPERX_API_KEY=your-secret-key", file=sys.stderr)
+                print("\nOr create a .env file with:", file=sys.stderr)
+                print("  WHISPERX_API_KEY=your-secret-key", file=sys.stderr)
+                print("", file=sys.stderr)
+                sys.exit(1)
+        # Re-raise other validation errors
+        raise

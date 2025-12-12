@@ -1,0 +1,515 @@
+"""FastAPI server with AssemblyAI-compatible endpoints."""
+
+import logging
+import sys
+import tempfile
+import uuid
+import warnings
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Annotated, Any
+
+# Suppress noisy warnings from dependencies
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="pyannote")
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch.serialization")
+warnings.filterwarnings("ignore", message=".*weights_only=False.*")
+warnings.filterwarnings("ignore", message=".*Model was trained with.*")
+warnings.filterwarnings("ignore", message=".*Lightning automatically upgraded.*")
+
+# Reduce lightning/pyannote logging noise
+logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+logging.getLogger("pyannote").setLevel(logging.WARNING)
+
+import httpx  # noqa: E402
+import torch  # noqa: E402
+from fastapi import (  # noqa: E402
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
+from fastapi.responses import JSONResponse, PlainTextResponse  # noqa: E402
+
+from whisperx_api.auth import verify_api_key  # noqa: E402
+from whisperx_api.config import get_settings  # noqa: E402
+from whisperx_api.database import (  # noqa: E402
+    create_transcript,
+    delete_transcript,
+    get_transcript,
+    init_db,
+    list_transcripts,
+    update_transcript,
+)
+from whisperx_api.models import (  # noqa: E402
+    HealthResponse,
+    Pagination,
+    ReadyResponse,
+    Transcript,
+    TranscriptList,
+)
+from whisperx_api.transcriber import TranscribeOptions, download_audio, transcribe  # noqa: E402
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan - initialize database and preload model on startup."""
+    settings = get_settings()
+
+    # Run dependency checks (unless skipped)
+    if not settings.skip_dependency_check:
+        from whisperx_api.deps import print_dependency_report, validate_dependencies
+
+        # Check if diarization is likely to be used (preload_languages implies heavy usage)
+        require_diarization = bool(settings.preload_languages)
+        statuses = validate_dependencies(require_diarization=require_diarization)
+
+        if not print_dependency_report(statuses):
+            print("\n[ERROR] Required dependencies missing. See above for install instructions.")
+            print("        To skip this check: WHISPERX_SKIP_DEPENDENCY_CHECK=true")
+            sys.exit(1)
+
+    # Set default CUDA device if available
+    if torch.cuda.is_available():
+        torch.cuda.set_device(settings.device)
+        print(f"Using GPU [{settings.device}]: {torch.cuda.get_device_name(settings.device)}")
+
+    await init_db()
+
+    # Preload WhisperX model (takes 30-60s but makes first request fast)
+    from whisperx_api.model_manager import ModelManager
+    ModelManager.preload()
+
+    # Preload alignment models for configured languages
+    if settings.preload_languages:
+        print(f"Preloading alignment models for: {settings.preload_languages}")
+        for lang in settings.preload_languages:
+            try:
+                ModelManager.get_align_model(lang)
+                print(f"  Loaded: {lang}")
+            except Exception as e:
+                print(f"  Failed to load {lang}: {e}")
+
+    yield
+
+
+app = FastAPI(
+    title="WhisperX API",
+    version="2.0.0",
+    description="Local WhisperX transcription service with AssemblyAI-compatible API",
+    lifespan=lifespan,
+    swagger_ui_parameters={
+        "tryItOutEnabled": True,  # Enable "Try it out" by default
+        "defaultModelsExpandDepth": -1,  # Collapse models by default
+        "docExpansion": "list",  # Show operations as list
+        "filter": True,  # Enable search filter
+    },
+)
+
+
+# Health endpoints (no auth required)
+
+
+@app.get("/health", response_model=HealthResponse)
+def health() -> dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
+@app.get("/ready", response_model=ReadyResponse)
+def ready() -> dict[str, str]:
+    """GPU readiness check endpoint."""
+    if not torch.cuda.is_available():
+        raise HTTPException(status_code=503, detail="GPU not available")
+
+    settings = get_settings()
+    return {
+        "status": "ready",
+        "gpu": torch.cuda.get_device_name(settings.device),
+        "model": settings.model,
+    }
+
+
+# Background transcription task
+
+
+def process_transcription(
+    transcript_id: str,
+    audio_path: Path,
+    options: TranscribeOptions,
+    audio_url: str | None,
+    webhook_url: str | None,
+    webhook_auth_header: str | None,
+) -> None:
+    """Background task for transcription processing."""
+    import asyncio
+
+    async def update_progress(progress: float) -> None:
+        await update_transcript(transcript_id, progress=progress)
+
+    def sync_progress_callback(progress: float) -> None:
+        asyncio.run(update_progress(progress))
+
+    try:
+        # Update status to processing
+        asyncio.run(update_transcript(transcript_id, status="processing", progress=0.05))
+
+        # Run transcription pipeline with progress updates
+        result = transcribe(
+            audio_path=audio_path,
+            options=options,
+            progress_callback=sync_progress_callback,
+        )
+
+        # Save completed result
+        asyncio.run(
+            update_transcript(
+                transcript_id,
+                status="completed",
+                text=result["text"],
+                words=result["words"],
+                utterances=result["utterances"],
+                confidence=result["confidence"],
+                audio_duration=result["audio_duration"],
+                language_code=result["language_code"],
+                progress=1.0,
+            )
+        )
+
+        # Send webhook if configured
+        if webhook_url:
+            asyncio.run(send_webhook(transcript_id, webhook_url, webhook_auth_header))
+
+    except Exception as e:
+        # Save error status
+        asyncio.run(
+            update_transcript(
+                transcript_id,
+                status="error",
+                error=str(e),
+                progress=0.0,
+            )
+        )
+
+        # Send webhook even on error
+        if webhook_url:
+            asyncio.run(send_webhook(transcript_id, webhook_url, webhook_auth_header))
+
+    finally:
+        # Cleanup temp file
+        if audio_path and audio_path.exists():
+            audio_path.unlink(missing_ok=True)
+
+
+async def send_webhook(transcript_id: str, webhook_url: str, auth_header: str | None) -> None:
+    """Send webhook notification with transcript result."""
+    try:
+        result = await get_transcript(transcript_id)
+        if not result:
+            return
+
+        headers = {}
+        if auth_header:
+            headers["Authorization"] = auth_header
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            await client.post(webhook_url, json=result, headers=headers)
+    except Exception as e:
+        # Log but don't fail on webhook errors
+        print(f"Webhook failed for {transcript_id}: {e}")
+
+
+# Transcript endpoints (auth required)
+
+
+@app.post(
+    "/v1/transcript",
+    response_model=Transcript,
+    dependencies=[Depends(verify_api_key)],
+)
+async def submit_transcript(
+    background_tasks: BackgroundTasks,
+    # File upload (optional) - REQUIRED: either file or audio_url
+    file: Annotated[UploadFile | None, File(description="Audio file to transcribe")] = None,
+    audio_url: Annotated[str | None, Form(description="URL to download audio from")] = None,
+    # Optional parameters - hidden from schema, use defaults
+    language_code: Annotated[str | None, Form(include_in_schema=False)] = None,
+    speaker_labels: Annotated[bool, Form(include_in_schema=False)] = False,
+    speakers_expected: Annotated[int | None, Form(include_in_schema=False)] = None,
+    min_speakers: Annotated[int | None, Form(include_in_schema=False)] = None,
+    max_speakers: Annotated[int | None, Form(include_in_schema=False)] = None,
+    task: Annotated[str, Form(include_in_schema=False)] = "transcribe",
+    temperature: Annotated[float, Form(include_in_schema=False)] = 0.0,
+    beam_size: Annotated[int, Form(include_in_schema=False)] = 5,
+    best_of: Annotated[int, Form(include_in_schema=False)] = 5,
+    patience: Annotated[float, Form(include_in_schema=False)] = 1.0,
+    length_penalty: Annotated[float, Form(include_in_schema=False)] = 1.0,
+    initial_prompt: Annotated[str | None, Form(include_in_schema=False)] = None,
+    hotwords: Annotated[str | None, Form(include_in_schema=False)] = None,
+    word_timestamps: Annotated[bool, Form(include_in_schema=False)] = True,
+    return_char_alignments: Annotated[bool, Form(include_in_schema=False)] = False,
+    suppress_numerals: Annotated[bool, Form(include_in_schema=False)] = False,
+    compression_ratio_threshold: Annotated[float, Form(include_in_schema=False)] = 2.4,
+    no_speech_threshold: Annotated[float, Form(include_in_schema=False)] = 0.6,
+    condition_on_previous_text: Annotated[bool, Form(include_in_schema=False)] = False,
+    vad_onset: Annotated[float, Form(include_in_schema=False)] = 0.5,
+    vad_offset: Annotated[float, Form(include_in_schema=False)] = 0.363,
+    chunk_size: Annotated[int, Form(include_in_schema=False)] = 30,
+    webhook_url: Annotated[str | None, Form(include_in_schema=False)] = None,
+    webhook_auth_header: Annotated[str | None, Form(include_in_schema=False)] = None,
+) -> dict[str, Any]:
+    """Submit a new transcription job.
+
+    Accepts either:
+    - `file`: Direct file upload (multipart/form-data)
+    - `audio_url`: URL to download audio from
+
+    The audio will be transcribed asynchronously.
+    Poll GET /v1/transcript/{id} to check status.
+    """
+    settings = get_settings()
+
+    # Validate input
+    if not file and not audio_url:
+        raise HTTPException(status_code=400, detail="Either file or audio_url is required")
+
+    transcript_id = str(uuid.uuid4())
+
+    # Handle file upload
+    if file:
+        # Validate file size
+        if file.size and file.size > settings.max_upload_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size: {settings.max_upload_size_mb}MB"
+            )
+
+        # Save to temp file
+        suffix = Path(file.filename or "audio").suffix or ".mp3"
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        content = await file.read()
+        temp_file.write(content)
+        temp_file.close()
+        audio_path = Path(temp_file.name)
+        audio_url_for_db = f"file://{file.filename}"
+    else:
+        # Download from URL (in background task)
+        audio_path = await download_audio(audio_url)  # type: ignore
+        audio_url_for_db = audio_url
+
+    # Create database record
+    result = await create_transcript(
+        id=transcript_id,
+        audio_url=audio_url_for_db,
+        language=language_code,
+        speaker_labels=speaker_labels,
+        speakers_expected=speakers_expected,
+        webhook_url=webhook_url,
+        webhook_auth_header=webhook_auth_header,
+    )
+
+    # Build options
+    options = TranscribeOptions(
+        language=language_code,
+        task=task,
+        speaker_labels=speaker_labels,
+        speakers_expected=speakers_expected,
+        min_speakers=min_speakers,
+        max_speakers=max_speakers,
+        temperature=temperature,
+        beam_size=beam_size,
+        best_of=best_of,
+        patience=patience,
+        length_penalty=length_penalty,
+        initial_prompt=initial_prompt,
+        hotwords=hotwords,
+        word_timestamps=word_timestamps,
+        return_char_alignments=return_char_alignments,
+        suppress_numerals=suppress_numerals,
+        compression_ratio_threshold=compression_ratio_threshold,
+        no_speech_threshold=no_speech_threshold,
+        condition_on_previous_text=condition_on_previous_text,
+        vad_onset=vad_onset,
+        vad_offset=vad_offset,
+        chunk_size=chunk_size,
+    )
+
+    # Queue background task
+    background_tasks.add_task(
+        process_transcription,
+        transcript_id=transcript_id,
+        audio_path=audio_path,
+        options=options,
+        audio_url=audio_url_for_db,
+        webhook_url=webhook_url,
+        webhook_auth_header=webhook_auth_header,
+    )
+
+    return result
+
+
+@app.get(
+    "/v1/transcript/{transcript_id}",
+    response_model=Transcript,
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_transcript_endpoint(transcript_id: str) -> dict[str, Any]:
+    """Get transcript status and result."""
+    result = await get_transcript(transcript_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    return result
+
+
+@app.get(
+    "/v1/transcript/{transcript_id}/srt",
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_srt(transcript_id: str) -> PlainTextResponse:
+    """Export transcript as SRT subtitles."""
+    result = await get_transcript(transcript_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    if result["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Transcript not ready")
+
+    srt_content = generate_srt(result.get("utterances") or [])
+    return PlainTextResponse(srt_content, media_type="text/srt")
+
+
+@app.get(
+    "/v1/transcript/{transcript_id}/vtt",
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_vtt(transcript_id: str) -> PlainTextResponse:
+    """Export transcript as WebVTT subtitles."""
+    result = await get_transcript(transcript_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    if result["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Transcript not ready")
+
+    vtt_content = generate_vtt(result.get("utterances") or [])
+    return PlainTextResponse(vtt_content, media_type="text/vtt")
+
+
+@app.get(
+    "/v1/transcript/{transcript_id}/txt",
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_txt(transcript_id: str) -> PlainTextResponse:
+    """Export transcript as plain text."""
+    result = await get_transcript(transcript_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    if result["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Transcript not ready")
+
+    return PlainTextResponse(result.get("text") or "", media_type="text/plain")
+
+
+@app.get(
+    "/v1/transcript/{transcript_id}/json",
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_json(transcript_id: str) -> JSONResponse:
+    """Export full transcript as JSON download."""
+    result = await get_transcript(transcript_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    if result["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Transcript not ready")
+
+    return JSONResponse(
+        content=result,
+        headers={"Content-Disposition": f'attachment; filename="{transcript_id}.json"'}
+    )
+
+
+@app.get(
+    "/v1/transcript/{transcript_id}/words",
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_words(transcript_id: str) -> JSONResponse:
+    """Export word-level timestamps."""
+    result = await get_transcript(transcript_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    if result["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Transcript not ready")
+
+    return JSONResponse(content={"words": result.get("words") or []})
+
+
+@app.get(
+    "/v1/transcript",
+    response_model=TranscriptList,
+    dependencies=[Depends(verify_api_key)],
+)
+async def list_transcripts_endpoint(
+    limit: int = 100,
+    offset: int = 0,
+    status: str | None = None,
+) -> dict[str, Any]:
+    """List transcripts with optional status filter and pagination."""
+    transcripts, total = await list_transcripts(limit=limit, offset=offset, status=status)
+    return {
+        "transcripts": transcripts,
+        "pagination": Pagination(total=total, limit=limit, offset=offset),
+    }
+
+
+@app.delete(
+    "/v1/transcript/{transcript_id}",
+    dependencies=[Depends(verify_api_key)],
+)
+async def delete_transcript_endpoint(transcript_id: str) -> dict[str, str]:
+    """Delete a transcript."""
+    deleted = await delete_transcript(transcript_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    return {"id": transcript_id, "status": "deleted"}
+
+
+# Subtitle generation helpers
+
+
+def generate_srt(utterances: list[dict[str, Any]]) -> str:
+    """Generate SRT subtitle format from utterances."""
+    lines = []
+    for i, utterance in enumerate(utterances, 1):
+        start = format_timestamp_srt(utterance["start"])
+        end = format_timestamp_srt(utterance["end"])
+        text = utterance["text"]
+        lines.append(f"{i}\n{start} --> {end}\n{text}\n")
+    return "\n".join(lines)
+
+
+def generate_vtt(utterances: list[dict[str, Any]]) -> str:
+    """Generate WebVTT subtitle format from utterances."""
+    lines = ["WEBVTT\n"]
+    for utterance in utterances:
+        start = format_timestamp_vtt(utterance["start"])
+        end = format_timestamp_vtt(utterance["end"])
+        text = utterance["text"]
+        lines.append(f"{start} --> {end}\n{text}\n")
+    return "\n".join(lines)
+
+
+def format_timestamp_srt(ms: int) -> str:
+    """Format milliseconds as SRT timestamp (HH:MM:SS,mmm)."""
+    s, ms = divmod(ms, 1000)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+
+
+def format_timestamp_vtt(ms: int) -> str:
+    """Format milliseconds as VTT timestamp (HH:MM:SS.mmm)."""
+    s, ms = divmod(ms, 1000)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"

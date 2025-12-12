@@ -1,0 +1,101 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "whisperx-api"
+version = "2.0.0"
+description = "Local WhisperX transcription API - AssemblyAI compatible"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = {text = "MIT"}
+keywords = ["whisper", "transcription", "speech-to-text", "api", "whisperx"]
+authors = [
+    {name = "namastexlabs"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Framework :: FastAPI",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+dependencies = [
+    "whisperx>=3.1.1",
+    "torch>=2.9.0",
+    "fastapi>=0.100",
+    "uvicorn>=0.20",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-multipart>=0.0.6",
+    "aiosqlite>=0.19",
+    "httpx>=0.25",
+    "python-dotenv>=1.0",
+    "imageio-ffmpeg>=0.4.9",
+    "torchaudio>=2.8.0",
+    "pyannote-audio>=4.0",
+    "torchvision>=0.24.1",
+    "speechbrain>=1.0",
+    "omegaconf>=2.3.0",
+]
+
+[project.scripts]
+whisperx-api = "whisperx_api.main:run"
+
+[project.urls]
+Homepage = "https://github.com/namastexlabs/whisperx-api"
+Repository = "https://github.com/namastexlabs/whisperx-api.git"
+Issues = "https://github.com/namastexlabs/whisperx-api/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.1",
+    "mypy>=1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/whisperx_api"]
+
+[tool.uv]
+managed = true
+
+[tool.uv.sources]
+torch = {index = "pytorch"}
+torchaudio = {index = "pytorch"}
+torchvision = {index = "pytorch"}
+speechbrain = { git = "https://github.com/speechbrain/speechbrain.git", rev = "1e32ef89605049c6f0ccf777192847a719a298ce" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu126"
+priority = "supplemental"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+]
