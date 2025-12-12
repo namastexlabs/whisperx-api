@@ -330,7 +330,7 @@ def transcribe(
         transcribe_kwargs["vad_method"] = options.vad_method
 
     if asr_options:
-        transcribe_kwargs["asr_options"] = asr_options
+        transcribe_kwargs.update(asr_options)
     if vad_options:
         transcribe_kwargs["vad_options"] = vad_options
 
