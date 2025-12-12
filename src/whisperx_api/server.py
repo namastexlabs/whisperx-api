@@ -235,20 +235,30 @@ async def submit_transcript(
     background_tasks: BackgroundTasks,
     # File upload (optional) - REQUIRED: either file or audio_url
     file: Annotated[UploadFile | None, File(description="Audio file to transcribe")] = None,
-    audio_url: Annotated[str | None, Form(description="URL to download audio from")] = None,
+    audio_url: Annotated[
+        str | None, Form(description="URL to download audio from", examples=[""])
+    ] = None,
     # All optional parameters with WhisperX defaults
     language_code: Annotated[
-        str | None, Form(description="Language code (auto-detect if empty)")
+        str | None, Form(description="Language code (auto-detect if empty)", examples=[""])
     ] = None,
     speaker_labels: Annotated[bool, Form(description="Enable speaker diarization")] = False,
     speakers_expected: Annotated[
-        int | None, Form(description="Expected number of speakers")
+        int | None, Form(description="Expected number of speakers (leave empty for auto)")
     ] = None,
-    min_speakers: Annotated[int | None, Form(description="Minimum expected speakers")] = None,
-    max_speakers: Annotated[int | None, Form(description="Maximum expected speakers")] = None,
+    min_speakers: Annotated[
+        int | None, Form(description="Minimum expected speakers (leave empty for auto)")
+    ] = None,
+    max_speakers: Annotated[
+        int | None, Form(description="Maximum expected speakers (leave empty for auto)")
+    ] = None,
     task: Annotated[str, Form(description="'transcribe' or 'translate'")] = "transcribe",
-    initial_prompt: Annotated[str | None, Form(description="Prompt for first window")] = None,
-    hotwords: Annotated[str | None, Form(description="Comma-separated boost words")] = None,
+    initial_prompt: Annotated[
+        str | None, Form(description="Prompt for first window", examples=[""])
+    ] = None,
+    hotwords: Annotated[
+        str | None, Form(description="Comma-separated boost words", examples=[""])
+    ] = None,
     temperature: Annotated[float, Form(description="Sampling temperature (0=greedy)")] = 0.0,
     beam_size: Annotated[int, Form(description="Beam search size")] = 5,
     best_of: Annotated[int, Form(description="Sampling alternatives")] = 5,
@@ -267,9 +277,11 @@ async def submit_transcript(
     vad_onset: Annotated[float, Form(description="VAD speech onset threshold")] = 0.5,
     vad_offset: Annotated[float, Form(description="VAD speech offset threshold")] = 0.363,
     chunk_size: Annotated[int, Form(description="Max chunk duration in seconds")] = 30,
-    webhook_url: Annotated[str | None, Form(description="Webhook URL for results")] = None,
+    webhook_url: Annotated[
+        str | None, Form(description="Webhook URL for results", examples=[""])
+    ] = None,
     webhook_auth_header: Annotated[
-        str | None, Form(description="Webhook Authorization header")
+        str | None, Form(description="Webhook Authorization header", examples=[""])
     ] = None,
 ) -> dict[str, Any]:
     """Submit a new transcription job.
@@ -282,6 +294,19 @@ async def submit_transcript(
     Poll GET /v1/transcript/{id} to check status.
     """
     settings = get_settings()
+
+    # Sanitize nullable fields (convert empty/zero values to None)
+    # This handles Swagger UI sending "" or 0 instead of omitting the field
+    audio_url = audio_url if audio_url else None
+    language_code = language_code if language_code else None
+    initial_prompt = initial_prompt if initial_prompt else None
+    hotwords = hotwords if hotwords else None
+    webhook_url = webhook_url if webhook_url else None
+    webhook_auth_header = webhook_auth_header if webhook_auth_header else None
+    # Speaker counts: 0 is invalid (means "not set"), convert to None for auto-detect
+    speakers_expected = speakers_expected if speakers_expected else None
+    min_speakers = min_speakers if min_speakers else None
+    max_speakers = max_speakers if max_speakers else None
 
     # Validate input
     if not file and not audio_url:
