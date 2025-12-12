@@ -9,7 +9,7 @@ def test_settings_loads_with_env_vars(test_settings):
     """Test that settings load correctly from environment."""
     assert test_settings.api_key == "test-api-key-12345"
     assert test_settings.host == "127.0.0.1"
-    assert test_settings.port == 8000
+    assert test_settings.port == 8880
 
 
 def test_settings_default_values(test_settings):

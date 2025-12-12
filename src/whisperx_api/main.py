@@ -23,7 +23,7 @@ Examples:
 Environment variables:
   WHISPERX_API_KEY               API authentication key (required)
   WHISPERX_HOST                  Server bind address (default: 0.0.0.0)
-  WHISPERX_PORT                  Server port (default: 8000)
+  WHISPERX_PORT                  Server port (default: 8880)
   WHISPERX_MODEL                 WhisperX model (default: large-v3-turbo)
   WHISPERX_HF_TOKEN              HuggingFace token for diarization
 

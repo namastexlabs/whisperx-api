@@ -269,7 +269,7 @@ WHISPERX_API_KEY=${API_KEY}
 
 # Server settings
 WHISPERX_HOST=0.0.0.0
-WHISPERX_PORT=8000
+WHISPERX_PORT=8880
 
 # Model settings
 WHISPERX_MODEL=large-v3-turbo
@@ -323,15 +323,15 @@ show_summary() {
     echo -e "  ${CYAN}uvx whisperx-api${NC}"
     echo ""
     echo "API will be available at:"
-    echo "  http://localhost:8000"
-    echo "  http://localhost:8000/docs (Swagger UI)"
+    echo "  http://localhost:8880"
+    echo "  http://localhost:8880/docs (Swagger UI)"
     echo ""
     echo "Configuration file:"
     echo "  ${CONFIG_DIR}/.env"
     echo ""
     echo "Example transcription:"
     echo ""
-    echo "  curl -X POST http://localhost:8000/v1/transcript \\"
+    echo "  curl -X POST http://localhost:8880/v1/transcript \\"
     echo "    -H \"Authorization: Bearer \$(grep WHISPERX_API_KEY ${CONFIG_DIR}/.env | cut -d= -f2)\" \\"
     echo "    -F \"file=@audio.mp3\""
     echo ""
