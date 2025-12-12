@@ -76,7 +76,7 @@ class TranscribeOptions:
     hotwords: str | None = None
 
     # Output control
-    word_timestamps: bool = True
+    word_timestamps: bool = False
     return_char_alignments: bool = False
     suppress_numerals: bool = False
 

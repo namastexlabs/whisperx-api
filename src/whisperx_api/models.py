@@ -29,6 +29,10 @@ class TranscriptParams(BaseModel):
         "transcribe", description="'transcribe' for same language, 'translate' to English"
     )
 
+    # Prompt engineering
+    initial_prompt: str | None = Field(None, description="Prompt for first transcription window")
+    hotwords: str | None = Field(None, description="Comma-separated words to boost recognition")
+
     # Decoding parameters (WhisperX defaults)
     temperature: float = Field(0.0, ge=0.0, le=1.0, description="Sampling temperature (0=greedy)")
     beam_size: int = Field(5, ge=1, le=10, description="Beam search size")
@@ -36,12 +40,8 @@ class TranscriptParams(BaseModel):
     patience: float = Field(1.0, ge=0.0, description="Beam search patience factor")
     length_penalty: float = Field(1.0, description="Exponential length penalty")
 
-    # Prompt engineering
-    initial_prompt: str | None = Field(None, description="Prompt for first transcription window")
-    hotwords: str | None = Field(None, description="Comma-separated words to boost recognition")
-
     # Output control
-    word_timestamps: bool = Field(True, description="Include word-level timestamps")
+    word_timestamps: bool = Field(False, description="Include word-level timestamps")
     return_char_alignments: bool = Field(False, description="Include character-level alignments")
     suppress_numerals: bool = Field(False, description="Spell out numbers instead of digits")
 
