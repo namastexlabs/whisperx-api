@@ -1,0 +1,192 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, dev]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Release action'
+        required: true
+        type: choice
+        options:
+          - rc
+          - stable
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  gate-check:
+    name: Gate Check
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.pull_request.merged == true &&
+       (contains(github.event.pull_request.labels.*.name, 'rc') ||
+        contains(github.event.pull_request.labels.*.name, 'stable')))
+    outputs:
+      action: ${{ steps.detect.outputs.action }}
+      should_release: ${{ steps.detect.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect action
+        id: detect
+        run: |
+          # Check for bot commits to prevent loops
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          if [[ "$COMMIT_MSG" =~ ^chore:\ (release|bump) ]]; then
+            echo "Skipping: bot commit detected"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Determine action from labels or input
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            ACTION="${{ github.event.inputs.action }}"
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'stable') }}" == "true" ]]; then
+            ACTION="stable"
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'rc') }}" == "true" ]]; then
+            ACTION="rc"
+          else
+            echo "No release label found"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Stable releases only from main branch
+          if [[ "$ACTION" == "stable" && "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "Error: stable releases only from main branch"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "action=$ACTION" >> $GITHUB_OUTPUT
+          echo "should_release=true" >> $GITHUB_OUTPUT
+          echo "Release action: $ACTION"
+
+  version:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    needs: gate-check
+    if: needs.gate-check.outputs.should_release == 'true'
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        run: |
+          python scripts/bump_version.py --action ${{ needs.gate-check.outputs.action }}
+
+          # Get new version from pyproject.toml
+          VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
+          TAG="v$VERSION"
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "New version: $VERSION"
+
+      - name: Commit and tag
+        run: |
+          git add pyproject.toml src/whisperx_api/__init__.py
+          git commit -m "chore: release ${{ steps.bump.outputs.tag }}"
+          git tag ${{ steps.bump.outputs.tag }}
+          git push origin HEAD --tags
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Build package
+        run: uv build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [version, build]
+    # environment: pypi-publish  # Enable after setting up trusted publishing
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
+
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [version, build, publish]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Determine prerelease
+        id: prerelease
+        run: |
+          if [[ "${{ needs.version.outputs.version }}" == *"rc"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: ${{ needs.version.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+          files: dist/*
