@@ -34,9 +34,9 @@ from fastapi import (  # noqa: E402
 )
 from fastapi.responses import JSONResponse, PlainTextResponse  # noqa: E402
 
-from murmurai.auth import verify_api_key  # noqa: E402
-from murmurai.config import get_settings  # noqa: E402
-from murmurai.database import (  # noqa: E402
+from murmurai_server.auth import verify_api_key  # noqa: E402
+from murmurai_server.config import get_settings  # noqa: E402
+from murmurai_server.database import (  # noqa: E402
     create_transcript,
     delete_transcript,
     get_transcript,
@@ -44,15 +44,15 @@ from murmurai.database import (  # noqa: E402
     list_transcripts,
     update_transcript,
 )
-from murmurai.logging import get_logger, setup_logging  # noqa: E402
-from murmurai.models import (  # noqa: E402
+from murmurai_server.logging import get_logger, setup_logging  # noqa: E402
+from murmurai_server.models import (  # noqa: E402
     HealthResponse,
     Pagination,
     ReadyResponse,
     Transcript,
     TranscriptList,
 )
-from murmurai.transcriber import TranscribeOptions, download_audio, transcribe  # noqa: E402
+from murmurai_server.transcriber import TranscribeOptions, download_audio, transcribe  # noqa: E402
 
 
 @asynccontextmanager
@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Run dependency checks (unless skipped)
     if not settings.skip_dependency_check:
-        from murmurai.deps import print_dependency_report, validate_dependencies
+        from murmurai_server.deps import print_dependency_report, validate_dependencies
 
         # Check if diarization is likely to be used (preload_languages implies heavy usage)
         require_diarization = bool(settings.preload_languages)
@@ -94,7 +94,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_db()
 
     # Preload model (takes 30-60s but makes first request fast)
-    from murmurai.model_manager import ModelManager
+    from murmurai_server.model_manager import ModelManager
 
     ModelManager.preload()
 

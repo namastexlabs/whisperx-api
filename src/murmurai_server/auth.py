@@ -5,7 +5,7 @@ import secrets
 from fastapi import HTTPException, Security
 from fastapi.security import APIKeyHeader
 
-from murmurai.config import get_settings
+from murmurai_server.config import get_settings
 
 api_key_header = APIKeyHeader(name="Authorization", auto_error=True)
 

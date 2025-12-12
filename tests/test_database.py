@@ -2,7 +2,7 @@
 
 import pytest
 
-from murmurai.database import (
+from murmurai_server.database import (
     create_transcript,
     delete_transcript,
     get_transcript,

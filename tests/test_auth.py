@@ -3,7 +3,7 @@
 import pytest
 from fastapi import HTTPException
 
-from murmurai.auth import verify_api_key
+from murmurai_server.auth import verify_api_key
 
 
 @pytest.mark.asyncio

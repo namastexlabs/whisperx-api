@@ -5,8 +5,8 @@ import sys
 
 import uvicorn
 
-from murmurai.config import get_settings
-from murmurai.deps import startup_check
+from murmurai_server.config import get_settings
+from murmurai_server.deps import startup_check
 
 
 def run() -> None:
@@ -49,7 +49,7 @@ Full docs: https://github.com/namastexlabs/murmurai
     args = parser.parse_args()
 
     if args.version:
-        from murmurai import __version__
+        from murmurai_server import __version__
 
         print(f"murmurai {__version__}")
         sys.exit(0)
@@ -70,7 +70,7 @@ Full docs: https://github.com/namastexlabs/murmurai
 
     # Start FastAPI server
     uvicorn.run(
-        "murmurai.server:app",
+        "murmurai_server.server:app",
         host=settings.host,
         port=settings.port,
         reload=False,

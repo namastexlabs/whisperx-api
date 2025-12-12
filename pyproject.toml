@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "murmurai"
-version = "1.0.0"
+version = "1.0.1"
 description = "GPU-powered transcription API with speaker diarization"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "murmurai-core>=1.0.0",
+    "murmurai-core>=1.0.1",
     "torch>=2.9.0",
     "fastapi>=0.100",
     "uvicorn>=0.20",
@@ -35,16 +35,12 @@ dependencies = [
     "aiosqlite>=0.19",
     "httpx>=0.25",
     "python-dotenv>=1.0",
-    "imageio-ffmpeg>=0.4.9",
     "torchaudio>=2.8.0",
-    "pyannote-audio>=4.0",
     "torchvision>=0.24.1",
-    "speechbrain>=1.0",
-    "omegaconf>=2.3.0",
 ]
 
 [project.scripts]
-murmurai = "murmurai.main:run"
+murmurai = "murmurai_server.main:run"
 
 [project.urls]
 Homepage = "https://github.com/namastexlabs/murmurai"
@@ -52,7 +48,10 @@ Repository = "https://github.com/namastexlabs/murmurai.git"
 Issues = "https://github.com/namastexlabs/murmurai/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/murmurai"]
+packages = ["src/murmurai_server"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
 
 [tool.uv]
 managed = true
@@ -62,7 +61,6 @@ index-strategy = "unsafe-best-match"
 torch = {index = "pytorch"}
 torchaudio = {index = "pytorch"}
 torchvision = {index = "pytorch"}
-speechbrain = { git = "https://github.com/speechbrain/speechbrain.git", rev = "1e32ef89605049c6f0ccf777192847a719a298ce" }
 
 [[tool.uv.index]]
 name = "pytorch"
