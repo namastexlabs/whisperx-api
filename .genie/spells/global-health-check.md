@@ -31,4 +31,3 @@ mcp__genie__run agent="review" prompt="Review placeholder wish (no code)"
 
 ## Evidence
 - Save outputs to `.genie/qa/evidence/forge-health-<timestamp>.txt`
-

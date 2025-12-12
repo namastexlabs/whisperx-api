@@ -29,6 +29,7 @@ _patched_modules = []
 
 try:
     import lightning.fabric.utilities.cloud_io as cloud_io
+
     cloud_io._load = _patched_load
     _patched_modules.append("lightning.fabric.utilities.cloud_io")
 except ImportError:
@@ -36,6 +37,7 @@ except ImportError:
 
 try:
     import lightning.pytorch.core.saving as saving
+
     saving.pl_load = _patched_load
     _patched_modules.append("lightning.pytorch.core.saving.pl_load")
 except ImportError:
@@ -43,6 +45,7 @@ except ImportError:
 
 try:
     import lightning_fabric.utilities.cloud_io as cloud_io2
+
     cloud_io2._load = _patched_load
     _patched_modules.append("lightning_fabric.utilities.cloud_io")
 except ImportError:
@@ -69,7 +72,9 @@ try:
         # Convert deprecated use_auth_token to token
         if "use_auth_token" in inference_kwargs:
             inference_kwargs["token"] = inference_kwargs.pop("use_auth_token")
-        return _original_vad_init(self, segmentation=segmentation, fscore=fscore, **inference_kwargs)
+        return _original_vad_init(
+            self, segmentation=segmentation, fscore=fscore, **inference_kwargs
+        )
 
     vad_module.VoiceActivityDetection.__init__ = _patched_vad_init
     _patched_modules.append("pyannote.vad.use_auth_token")
@@ -94,7 +99,7 @@ except (ImportError, AttributeError):
     pass
 
 if "pyannote" in " ".join(_patched_modules):
-    print(f"[whisperx-api] Patched whisperx/pyannote 4.x compatibility")
+    print("[whisperx-api] Patched whisperx/pyannote 4.x compatibility")
 
 # =============================================================================
 # Now safe to import pyannote (will use patched torch.load)
@@ -131,13 +136,15 @@ class ModelManager:
         with cls._lock:
             if cls._model is None:
                 settings = get_settings()
-                print(f"[whisperx-api] Loading WhisperX model: {settings.model} ({settings.compute_type})...")
+                print(
+                    f"[whisperx-api] Loading WhisperX model: {settings.model} ({settings.compute_type})..."
+                )
                 cls._model = whisperx.load_model(
                     settings.model,
                     device="cuda",
                     compute_type=settings.compute_type,
                 )
-                print(f"[whisperx-api] WhisperX model loaded successfully")
+                print("[whisperx-api] WhisperX model loaded successfully")
             return cls._model
 
     @classmethod
@@ -173,7 +180,9 @@ class ModelManager:
         with cls._lock:
             if cls._diarize_model is None:
                 settings = get_settings()
-                print("[whisperx-api] Loading diarization model: pyannote/speaker-diarization-community-1...")
+                print(
+                    "[whisperx-api] Loading diarization model: pyannote/speaker-diarization-community-1..."
+                )
 
                 pipeline = Pipeline.from_pretrained(
                     "pyannote/speaker-diarization-community-1",

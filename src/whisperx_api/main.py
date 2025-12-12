@@ -50,6 +50,7 @@ Full docs: https://github.com/namastexlabs/whisperx-api
 
     if args.version:
         from whisperx_api import __version__
+
         print(f"whisperx-api {__version__}")
         sys.exit(0)
 

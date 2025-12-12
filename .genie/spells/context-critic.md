@@ -48,4 +48,3 @@ Selection Guidance:
 Integration:
 - Use inline within neuron/agent prompts after `<context_candidates>`.
 - For heavier evaluation (e.g., run tests), spawn subtasks per candidate and summarize back.
-

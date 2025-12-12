@@ -6,4 +6,3 @@ Global Forge workflows applicable across domains. Core `forge` agent delegates h
 ## Structure
 - One file per workflow under `workflows/forge/`
 - Keep flows atomic, with clear inputs, steps, and evidence
-

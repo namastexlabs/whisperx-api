@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 
 def test_settings_loads_with_env_vars(test_settings):
     """Test that settings load correctly from environment."""

@@ -81,6 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Preload WhisperX model (takes 30-60s but makes first request fast)
     from whisperx_api.model_manager import ModelManager
+
     ModelManager.preload()
 
     # Preload alignment models for configured languages
@@ -236,30 +237,64 @@ async def submit_transcript(
     file: Annotated[UploadFile | None, File(description="Audio file to transcribe")] = None,
     audio_url: Annotated[str | None, Form(description="URL to download audio from")] = None,
     # All optional parameters default to None - server applies sensible defaults
-    language_code: Annotated[str | None, Form(description="Language code (default: auto-detect)")] = None,
-    speaker_labels: Annotated[bool | None, Form(description="Enable speaker diarization (default: false)")] = None,
-    speakers_expected: Annotated[int | None, Form(description="Expected number of speakers")] = None,
+    language_code: Annotated[
+        str | None, Form(description="Language code (default: auto-detect)")
+    ] = None,
+    speaker_labels: Annotated[
+        bool | None, Form(description="Enable speaker diarization (default: false)")
+    ] = None,
+    speakers_expected: Annotated[
+        int | None, Form(description="Expected number of speakers")
+    ] = None,
     min_speakers: Annotated[int | None, Form(description="Minimum expected speakers")] = None,
     max_speakers: Annotated[int | None, Form(description="Maximum expected speakers")] = None,
-    task: Annotated[str | None, Form(description="'transcribe' or 'translate' (default: transcribe)")] = None,
-    temperature: Annotated[float | None, Form(description="Sampling temperature (default: 0.0)")] = None,
+    task: Annotated[
+        str | None, Form(description="'transcribe' or 'translate' (default: transcribe)")
+    ] = None,
+    temperature: Annotated[
+        float | None, Form(description="Sampling temperature (default: 0.0)")
+    ] = None,
     beam_size: Annotated[int | None, Form(description="Beam search size (default: 5)")] = None,
     best_of: Annotated[int | None, Form(description="Sampling alternatives (default: 5)")] = None,
-    patience: Annotated[float | None, Form(description="Beam search patience (default: 1.0)")] = None,
-    length_penalty: Annotated[float | None, Form(description="Length penalty (default: 1.0)")] = None,
+    patience: Annotated[
+        float | None, Form(description="Beam search patience (default: 1.0)")
+    ] = None,
+    length_penalty: Annotated[
+        float | None, Form(description="Length penalty (default: 1.0)")
+    ] = None,
     initial_prompt: Annotated[str | None, Form(description="Prompt for first window")] = None,
     hotwords: Annotated[str | None, Form(description="Comma-separated boost words")] = None,
-    word_timestamps: Annotated[bool | None, Form(description="Include word timestamps (default: true)")] = None,
-    return_char_alignments: Annotated[bool | None, Form(description="Include char alignments (default: false)")] = None,
-    suppress_numerals: Annotated[bool | None, Form(description="Spell out numbers (default: false)")] = None,
-    compression_ratio_threshold: Annotated[float | None, Form(description="Hallucination filter (default: 2.4)")] = None,
-    no_speech_threshold: Annotated[float | None, Form(description="Silence threshold (default: 0.6)")] = None,
-    condition_on_previous_text: Annotated[bool | None, Form(description="Use previous as prompt (default: false)")] = None,
-    vad_onset: Annotated[float | None, Form(description="VAD onset threshold (default: 0.5)")] = None,
-    vad_offset: Annotated[float | None, Form(description="VAD offset threshold (default: 0.363)")] = None,
-    chunk_size: Annotated[int | None, Form(description="Max chunk duration in seconds (default: 30)")] = None,
+    word_timestamps: Annotated[
+        bool | None, Form(description="Include word timestamps (default: true)")
+    ] = None,
+    return_char_alignments: Annotated[
+        bool | None, Form(description="Include char alignments (default: false)")
+    ] = None,
+    suppress_numerals: Annotated[
+        bool | None, Form(description="Spell out numbers (default: false)")
+    ] = None,
+    compression_ratio_threshold: Annotated[
+        float | None, Form(description="Hallucination filter (default: 2.4)")
+    ] = None,
+    no_speech_threshold: Annotated[
+        float | None, Form(description="Silence threshold (default: 0.6)")
+    ] = None,
+    condition_on_previous_text: Annotated[
+        bool | None, Form(description="Use previous as prompt (default: false)")
+    ] = None,
+    vad_onset: Annotated[
+        float | None, Form(description="VAD onset threshold (default: 0.5)")
+    ] = None,
+    vad_offset: Annotated[
+        float | None, Form(description="VAD offset threshold (default: 0.363)")
+    ] = None,
+    chunk_size: Annotated[
+        int | None, Form(description="Max chunk duration in seconds (default: 30)")
+    ] = None,
     webhook_url: Annotated[str | None, Form(description="Webhook URL for results")] = None,
-    webhook_auth_header: Annotated[str | None, Form(description="Webhook Authorization header")] = None,
+    webhook_auth_header: Annotated[
+        str | None, Form(description="Webhook Authorization header")
+    ] = None,
 ) -> dict[str, Any]:
     """Submit a new transcription job.
 
@@ -284,7 +319,7 @@ async def submit_transcript(
         if file.size and file.size > settings.max_upload_bytes:
             raise HTTPException(
                 status_code=413,
-                detail=f"File too large. Maximum size: {settings.max_upload_size_mb}MB"
+                detail=f"File too large. Maximum size: {settings.max_upload_size_mb}MB",
             )
 
         # Save to temp file
@@ -297,7 +332,8 @@ async def submit_transcript(
         audio_url_for_db = f"file://{file.filename}"
     else:
         # Download from URL (in background task)
-        audio_path = await download_audio(audio_url)  # type: ignore
+        assert audio_url is not None  # Validated above
+        audio_path = await download_audio(audio_url)
         audio_url_for_db = audio_url
 
     # Create database record
@@ -327,11 +363,17 @@ async def submit_transcript(
         initial_prompt=initial_prompt,
         hotwords=hotwords,
         word_timestamps=word_timestamps if word_timestamps is not None else True,
-        return_char_alignments=return_char_alignments if return_char_alignments is not None else False,
+        return_char_alignments=return_char_alignments
+        if return_char_alignments is not None
+        else False,
         suppress_numerals=suppress_numerals if suppress_numerals is not None else False,
-        compression_ratio_threshold=compression_ratio_threshold if compression_ratio_threshold is not None else 2.4,
+        compression_ratio_threshold=compression_ratio_threshold
+        if compression_ratio_threshold is not None
+        else 2.4,
         no_speech_threshold=no_speech_threshold if no_speech_threshold is not None else 0.6,
-        condition_on_previous_text=condition_on_previous_text if condition_on_previous_text is not None else False,
+        condition_on_previous_text=condition_on_previous_text
+        if condition_on_previous_text is not None
+        else False,
         vad_onset=vad_onset if vad_onset is not None else 0.5,
         vad_offset=vad_offset if vad_offset is not None else 0.363,
         chunk_size=chunk_size if chunk_size is not None else 30,
@@ -425,7 +467,7 @@ async def get_json(transcript_id: str) -> JSONResponse:
 
     return JSONResponse(
         content=result,
-        headers={"Content-Disposition": f'attachment; filename="{transcript_id}.json"'}
+        headers={"Content-Disposition": f'attachment; filename="{transcript_id}.json"'},
     )
 
 

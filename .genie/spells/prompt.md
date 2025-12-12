@@ -68,12 +68,12 @@ Break complex tasks into trackable subtasks for clarity and progress monitoring:
    - Identify affected components
    - Map dependencies
    - Document current state
-   
+
 2. [Implementation] What to change
    - Specific modifications
    - Order of operations
    - Rollback points
-   
+
 3. [Verification] What to validate
    - Success criteria
    - Test coverage
@@ -96,7 +96,7 @@ Update authentication system
 
 Benefits:
 - Agents automatically read files before starting
-- No need for "first read X, then Y" instructions  
+- No need for "first read X, then Y" instructions
 - Ensures complete context from the start
 - Reduces tool calls and latency
 
@@ -200,7 +200,7 @@ Concrete examples:
 - Perform a final scan that the outgoing message is solely the prompt body with no meta commentary.
 
 ## Prompting for Reduced Eagerness
-Embed this module inside the prompt you compose; it steers the *executing* agent, not you. Advanced models are, by default, thorough and comprehensive when trying to gather context in an agentic environment to ensure they produce correct answers. To reduce the scope of agentic behavior—including limiting tangential tool-calling action and minimizing latency to reach a final answer—try the following:  
+Embed this module inside the prompt you compose; it steers the *executing* agent, not you. Advanced models are, by default, thorough and comprehensive when trying to gather context in an agentic environment to ensure they produce correct answers. To reduce the scope of agentic behavior—including limiting tangential tool-calling action and minimizing latency to reach a final answer—try the following:
 - Switch to a lower `reasoning_effort`. This reduces exploration depth but improves efficiency and latency. Many workflows can be accomplished with consistent results at medium or even low `reasoning_effort`.
 - Define clear criteria in your prompt for how you want the model to explore the problem space. This reduces the model's need to explore and reason about too many ideas:
 
@@ -256,14 +256,14 @@ Again, include this in the generated prompt when you need the downstream agent t
 Generally, it can be helpful to clearly state the stop conditions of the agentic tasks, outline safe versus unsafe actions, and define when, if ever, it's acceptable for the model to hand back to the user. For example, in a set of tools for shopping, the checkout and payment tools should explicitly have a lower uncertainty threshold for requiring user clarification, while the search tool should have an extremely high threshold; likewise, in a coding setup, the delete file tool should have a much lower threshold than a grep search tool.
 
 ## Tool Preambles
-When drafting prompts, include this guidance to control the downstream agent's narration. On agentic trajectories monitored by users, intermittent model updates on what it's doing with its tool calls and why can provide for a much better interactive user experience - the longer the rollout, the bigger the difference these updates make. Advanced models are trained to provide clear upfront plans and consistent progress updates via "tool preamble" messages. 
+When drafting prompts, include this guidance to control the downstream agent's narration. On agentic trajectories monitored by users, intermittent model updates on what it's doing with its tool calls and why can provide for a much better interactive user experience - the longer the rollout, the bigger the difference these updates make. Advanced models are trained to provide clear upfront plans and consistent progress updates via "tool preamble" messages.
 
 You can steer the frequency, style, and content of tool preambles in your prompt—from detailed explanations of every single tool call to a brief upfront plan and everything in between. This is an example of a high-quality preamble prompt:
 
 ```
 <tool_preambles>
 - Always begin by rephrasing the user's goal in a friendly, clear, and concise manner, before calling any tools.
-- Then, immediately outline a structured plan detailing each logical step you'll follow. - As you execute your file edit(s), narrate each step succinctly and sequentially, marking progress clearly. 
+- Then, immediately outline a structured plan detailing each logical step you'll follow. - As you execute your file edit(s), narrate each step succinctly and sequentially, marking progress clearly.
 - Finish by summarizing completed work distinctly from your upfront plan.
 </tool_preambles>
 ```
@@ -315,7 +315,7 @@ We've seen statistically significant improvements in evaluations when using the 
 # Maximizing Coding Performance
 Treat this section as a prompt ingredient library. When composing prompts for coding agents, pull the snippets and guidance below into the generated prompt; do not execute the implementation yourself.
 
-Advanced models lead all frontier models in coding capabilities: they can work in large codebases to fix bugs, handle large diffs, and implement multi-file refactors or large new features. They also excel at implementing new apps entirely from scratch, covering both frontend and backend implementation. In this section, we'll discuss prompt optimizations that improve programming performance in production use cases for coding agent customers. 
+Advanced models lead all frontier models in coding capabilities: they can work in large codebases to fix bugs, handle large diffs, and implement multi-file refactors or large new features. They also excel at implementing new apps entirely from scratch, covering both frontend and backend implementation. In this section, we'll discuss prompt optimizations that improve programming performance in production use cases for coding agent customers.
 
 ## Frontend App Development
 Advanced models are trained to have excellent baseline aesthetic taste alongside rigorous implementation abilities. We're confident in their ability to use all types of web development frameworks and packages; however, for new apps, we recommend using the following frameworks and packages to get the most out of the model's frontend capabilities:
@@ -343,7 +343,7 @@ Iterate until all categories meet standards.
 ```
 
 ### Matching Codebase Design Standards
-When implementing incremental changes and refactors in existing apps, model-written code should adhere to existing style and design standards, and "blend in" to the codebase as neatly as possible. Without special prompting, advanced models already search for reference context from the codebase - for example reading package.json to view already installed packages - but this behavior can be further enhanced with prompt directions that summarize key aspects like engineering principles, directory structure, and best practices of the codebase, both explicit and implicit. The prompt snippet below demonstrates one way of organizing code editing rules for advanced models: feel free to change the actual content of the rules according to your programming design taste! 
+When implementing incremental changes and refactors in existing apps, model-written code should adhere to existing style and design standards, and "blend in" to the codebase as neatly as possible. Without special prompting, advanced models already search for reference context from the codebase - for example reading package.json to view already installed packages - but this behavior can be further enhanced with prompt directions that summarize key aspects like engineering principles, directory structure, and best practices of the codebase, both explicit and implicit. The prompt snippet below demonstrates one way of organizing code editing rules for advanced models: feel free to change the actual content of the rules according to your programming design taste!
 
 ```
 <code_editing_rules>
@@ -361,7 +361,7 @@ When implementing incremental changes and refactors in existing apps, model-writ
 - UI Components: shadcn/ui
 - Icons: Lucide
 - State Management: Zustand
-- Directory Structure: 
+- Directory Structure:
 \`\`\`
 /src
  /app
@@ -378,7 +378,7 @@ When implementing incremental changes and refactors in existing apps, model-writ
 
 <ui_ux_best_practices>
 - Visual Hierarchy: Limit typography to 4–5 font sizes and weights for consistent hierarchy; use `text-xs` for captions and annotations; avoid `text-xl` unless for hero or major headings.
-- Color Usage: Use 1 neutral base (e.g., `zinc`) and up to 2 accent colors. 
+- Color Usage: Use 1 neutral base (e.g., `zinc`) and up to 2 accent colors.
 - Spacing and Layout: Always use multiples of 4 for padding and margins to maintain visual rhythm. Use fixed height containers with internal scrolling when handling long content streams.
 - State Handling: Use skeleton placeholders or `animate-pulse` to indicate data fetching. Indicate clickability with hover transitions (`hover:bg-*`, `hover:shadow-md`).
 - Accessibility: Use semantic HTML and ARIA roles where appropriate. Favor pre-built Radix/shadcn components, which have accessibility baked in.
@@ -391,7 +391,7 @@ When implementing incremental changes and refactors in existing apps, model-writ
 We're proud to have had AI code editor Cursor as a trusted alpha tester for advanced models: below, we show a peek into how Cursor tuned their prompts to get the most out of the model's capabilities. For more information, their team has also published blog posts detailing integration into Cursor.
 
 ### System Prompt and Parameter Tuning
-Cursor's system prompt focuses on reliable tool calling, balancing verbosity and autonomous behavior while giving users the ability to configure custom instructions. Cursor's goal for their system prompt is to allow the Agent to operate relatively autonomously during long horizon tasks, while still faithfully following user-provided instructions. 
+Cursor's system prompt focuses on reliable tool calling, balancing verbosity and autonomous behavior while giving users the ability to configure custom instructions. Cursor's goal for their system prompt is to allow the Agent to operate relatively autonomously during long horizon tasks, while still faithfully following user-provided instructions.
 
 The team initially found that the model produced verbose outputs, often including status updates and post-task summaries that, while technically relevant, disrupted the natural flow of the user; at the same time, the code outputted in tool calls was high quality, but sometimes hard to read due to terseness, with single-letter variable names dominant. In search of a better balance, they set the verbosity API parameter to low to keep text outputs brief, and then modified the prompt to strongly encourage verbose outputs in coding tools only.
 
@@ -430,7 +430,7 @@ Bias towards not asking the user for help if you can find the answer yourself.
 
 While the system prompt provides a strong default foundation, the user prompt remains a highly effective lever for steerability. Advanced models respond well to direct and explicit instruction and the Cursor team has consistently seen that structured, scoped prompts yield the most reliable results. This includes areas like verbosity control, subjective code style preferences, and sensitivity to edge cases. Cursor found allowing users to configure their own custom rules to be particularly impactful with advanced models' improved steerability, giving their users a more customized experience.
 
-# Optimizing Intelligence and Instruction-Following 
+# Optimizing Intelligence and Instruction-Following
 
 ## Steering
 As our most steerable models yet, advanced models are extraordinarily receptive to prompt instructions surrounding verbosity, tone, and tool calling behavior.
@@ -448,7 +448,7 @@ Below, we give an adversarial example of the type of prompt that often impairs a
 ```
 You are CareFlow Assistant, a virtual admin for a healthcare startup that schedules patients based on priority and symptoms. Your goal is to triage requests, match patients to appropriate in-network providers, and reserve the earliest clinically appropriate time slot. Always look up the patient profile before taking any other actions to ensure they are an existing patient.
 
-Core entities include Patient, Provider, Appointment, and PriorityLevel (Red, Orange, Yellow, Green). Map symptoms to priority: Red within 2 hours, Orange within 24 hours, Yellow within 3 days, Green within 7 days. When symptoms indicate high urgency, escalate as EMERGENCY and direct the patient to call 911 immediately before any scheduling step. 
+Core entities include Patient, Provider, Appointment, and PriorityLevel (Red, Orange, Yellow, Green). Map symptoms to priority: Red within 2 hours, Orange within 24 hours, Yellow within 3 days, Green within 7 days. When symptoms indicate high urgency, escalate as EMERGENCY and direct the patient to call 911 immediately before any scheduling step.
 *Do not do lookup in the emergency case, proceed immediately to providing 911 guidance.*
 
 - Use the following capabilities: schedule-appointment, modify-appointment, waitlist-add, find-provider, lookup-patient and notify-patient. Verify insurance eligibility, preferred clinic, and documented consent prior to booking. Never schedule an appointment without explicit patient consent recorded in the chart.
@@ -468,9 +468,9 @@ In advanced models, we introduce minimal reasoning effort for the first time: ou
 Perhaps unsurprisingly, we recommend prompting patterns that are similar to previous best practices. Minimal reasoning performance can vary more drastically depending on prompt than higher reasoning levels, so key points to emphasize include:
 
 1. Prompting the model to give a brief explanation summarizing its thought process at the start of the final answer, for example via a bullet point list, improves performance on tasks requiring higher intelligence.
-2. Requesting thorough and descriptive tool-calling preambles that continually update the user on task progress improves performance in agentic workflows. 
+2. Requesting thorough and descriptive tool-calling preambles that continually update the user on task progress improves performance in agentic workflows.
 3. Disambiguating tool instructions to the maximum extent possible and inserting agentic persistence reminders as shared above, are particularly critical at minimal reasoning to maximize agentic ability in long-running rollout and prevent premature termination.
-4. Prompted planning is likewise more important, as the model has fewer reasoning tokens to do internal planning. Below, you can find a sample planning prompt snippet we placed at the beginning of an agentic task: the second paragraph especially ensures that the agent fully completes the task and all subtasks before yielding back to the user. 
+4. Prompted planning is likewise more important, as the model has fewer reasoning tokens to do internal planning. Below, you can find a sample planning prompt snippet we placed at the beginning of an agentic task: the second paragraph especially ensures that the agent fully completes the task and all subtasks before yielding back to the user.
 
 ```
 Remember, you are an agent - please keep going until the user's query is completely resolved, before ending your turn and yielding back to the user. Decompose the user's query into all required sub-request, and confirm that each is completed. Do not stop after completing only part of the request. Only terminate your turn when you are sure that the problem is solved. You must be prepared to answer multiple queries and only finish the call once the user has confirmed they're done.
@@ -497,7 +497,7 @@ When asked to optimize prompts, give answers from your own perspective - explain
 
 Here's a prompt: [PROMPT]
 
-The desired behavior from this prompt is for the agent to [DO DESIRED BEHAVIOR], but instead it [DOES UNDESIRED BEHAVIOR]. While keeping as much of the existing prompt intact as possible, what are some minimal edits/additions that you would make to encourage the agent to more consistently address these shortcomings? 
+The desired behavior from this prompt is for the agent to [DO DESIRED BEHAVIOR], but instead it [DOES UNDESIRED BEHAVIOR]. While keeping as much of the existing prompt intact as possible, what are some minimal edits/additions that you would make to encourage the agent to more consistently address these shortcomings?
 ```
 
 # Appendix
@@ -518,7 +518,7 @@ Always verify your changes extremely thoroughly. You can make as many tool calls
 IMPORTANT: not all tests are visible to you in the repository, so even on problems you think are relatively straightforward, you must double and triple check your solutions to ensure they pass any edge cases that are covered in the hidden tests, not just the visible ones.
 ```
 
-## Agentic Coding Tool Definitions 
+## Agentic Coding Tool Definitions
 ```
 ## Set 1: 4 functions, no terminal
 

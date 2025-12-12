@@ -68,7 +68,15 @@ async def create_transcript(
             """INSERT INTO transcripts
                (id, audio_url, language_code, speaker_labels, speakers_expected, webhook_url, webhook_auth_header)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (id, audio_url, language, int(speaker_labels), speakers_expected, webhook_url, webhook_auth_header),
+            (
+                id,
+                audio_url,
+                language,
+                int(speaker_labels),
+                speakers_expected,
+                webhook_url,
+                webhook_auth_header,
+            ),
         )
         await db.commit()
 

@@ -33,15 +33,18 @@ class TestTranscriptParams:
         assert params.speakers_expected == 2
 
     def test_minimal_params(self):
-        """Test params with only defaults (for file upload case)."""
+        """Test params with only defaults (for file upload case).
+
+        All optional params default to None - server applies actual defaults.
+        """
         params = TranscriptParams()
         assert params.audio_url is None
         assert params.language_code is None
-        assert params.speaker_labels is False
+        assert params.speaker_labels is None  # Server default: False
         assert params.speakers_expected is None
-        assert params.task == "transcribe"
-        assert params.temperature == 0.0
-        assert params.beam_size == 5
+        assert params.task is None  # Server default: "transcribe"
+        assert params.temperature is None  # Server default: 0.0
+        assert params.beam_size is None  # Server default: 5
 
     def test_all_transcription_params(self):
         """Test all whisperx transcription parameters."""

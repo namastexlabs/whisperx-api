@@ -1,12 +1,10 @@
 """Startup dependency validation for WhisperX API."""
 
 import ctypes
-import os
 import platform
 import shutil
 import subprocess
-import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -368,7 +366,9 @@ def print_dependency_report(statuses: list[DependencyStatus]) -> bool:
         print("  [ERROR] Required dependencies missing!")
         print()
         print("  Run the install script to fix:")
-        print("    curl -fsSL https://raw.githubusercontent.com/namastexlabs/whisperx-api/main/get-whisperx.sh | bash")
+        print(
+            "    curl -fsSL https://raw.githubusercontent.com/namastexlabs/whisperx-api/main/get-whisperx.sh | bash"
+        )
         print()
         print("  Or continue anyway with: whisperx-api --force")
 

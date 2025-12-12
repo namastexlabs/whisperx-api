@@ -427,7 +427,7 @@ query_genie_via_description "$PROJECT_ID" "$GENIE_TASK_ID" "
 Review task plan:
 
 Task: Group 0 - Types Extraction
-Context: 
+Context:
 Scope: Extract ~50 lines of types to lib/types.ts
 Risk: May reveal hidden coupling
 

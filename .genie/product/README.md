@@ -17,4 +17,3 @@ Framework behavior
 Validation
 - The install and wish workflows verify these paths exist and surface missing sections as blockers.
 - If you rename/move files, update all `@.genie/product/...` references to avoid broken context.
-

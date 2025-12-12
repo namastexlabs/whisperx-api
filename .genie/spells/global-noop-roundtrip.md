@@ -22,4 +22,3 @@ mcp__genie__run agent="review" prompt="Review placeholder wish"
 
 ## Evidence
 - Save outputs to `.genie/qa/evidence/forge-noop-<timestamp>.txt`
-

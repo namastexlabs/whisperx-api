@@ -135,7 +135,7 @@ Implements interactive permission system for agents, allowing pause/resume durin
 - Manual testing: Verified pause → approval → resume flow
 
 ## Related
-- Wish: 
+- Wish:
 - Issue: #35
 EOF
 )" \

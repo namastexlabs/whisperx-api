@@ -65,4 +65,3 @@ Location: .genie/qa/evidence/ (created during test execution)
 **Status:** <APPROVED | BLOCKED>
 **Confidence:** <LOW | MEDIUM | HIGH>
 **Recommendation:** <action items>
-

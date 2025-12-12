@@ -86,4 +86,3 @@ Summarize the validation commands executed (per wish instructions and project de
 2. Update wish status to COMPLETED
 3. Update wish completion score to XX/100
 4. Create follow-up tasks for deferred documentation
-

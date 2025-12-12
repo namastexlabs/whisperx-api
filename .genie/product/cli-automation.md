@@ -356,4 +356,3 @@ Solution: Start Forge with `genie` (no args) or check `genie status`.
 genie stop <task-id>  # Kill stuck task
 genie list tasks      # Check status
 ```
-

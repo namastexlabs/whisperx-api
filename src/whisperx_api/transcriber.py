@@ -18,6 +18,7 @@ def _ensure_ffmpeg() -> None:
 
     try:
         from imageio_ffmpeg import get_ffmpeg_exe
+
         ffmpeg_path = get_ffmpeg_exe()
 
         # Create symlink directory with proper 'ffmpeg' name
@@ -104,11 +105,13 @@ def convert_pyannote_to_whisperx(diarization: Any) -> pd.DataFrame:
 
     segments = []
     for turn, _, speaker in annotation.itertracks(yield_label=True):
-        segments.append({
-            "start": turn.start,
-            "end": turn.end,
-            "speaker": speaker,
-        })
+        segments.append(
+            {
+                "start": turn.start,
+                "end": turn.end,
+                "speaker": speaker,
+            }
+        )
     return pd.DataFrame(segments)
 
 
@@ -183,7 +186,7 @@ def transcribe(
         transcribe_kwargs["task"] = options.task
 
     # VAD options (these are passed to the asr options in whisperx)
-    asr_options = {}
+    asr_options: dict[str, Any] = {}
     if options.initial_prompt:
         asr_options["initial_prompt"] = options.initial_prompt
     if options.hotwords:
@@ -208,7 +211,7 @@ def transcribe(
         asr_options["condition_on_previous_text"] = True
 
     # VAD options
-    vad_options = {}
+    vad_options: dict[str, Any] = {}
     if options.vad_onset != 0.5:
         vad_options["vad_onset"] = options.vad_onset
     if options.vad_offset != 0.363:
@@ -259,6 +262,7 @@ def transcribe(
         # Pass waveform dict to avoid file re-read
         # pyannote 4.x expects torch Tensor, whisperx returns numpy array
         import torch
+
         waveform = torch.from_numpy(audio[None, :])
         diarization = diarize_model(
             {"waveform": waveform, "sample_rate": 16000},

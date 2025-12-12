@@ -49,7 +49,9 @@ class TestTranscriptEndpoints:
     """Tests for transcript API endpoints."""
 
     @pytest.mark.asyncio
-    async def test_submit_transcript_with_url(self, async_client: AsyncClient, auth_headers: dict, tmp_path: Path):
+    async def test_submit_transcript_with_url(
+        self, async_client: AsyncClient, auth_headers: dict, tmp_path: Path
+    ):
         """Test POST /v1/transcript with URL creates a new job."""
         # Create a temp file for the mock
         test_audio = tmp_path / "test.mp3"
@@ -108,7 +110,10 @@ class TestTranscriptEndpoints:
             data={},
         )
         assert response.status_code == 400
-        assert "audio_url" in response.json()["detail"].lower() or "file" in response.json()["detail"].lower()
+        assert (
+            "audio_url" in response.json()["detail"].lower()
+            or "file" in response.json()["detail"].lower()
+        )
 
     @pytest.mark.asyncio
     async def test_submit_transcript_no_auth(self, async_client: AsyncClient):

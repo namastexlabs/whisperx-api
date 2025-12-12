@@ -28,10 +28,14 @@ def test_api_key() -> str:
 @pytest.fixture
 def test_env(test_api_key: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Set up test environment variables."""
+    # Change to tmp_path to avoid loading project .env file
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("WHISPERX_API_KEY", test_api_key)
     monkeypatch.setenv("WHISPERX_DATA_DIR", str(tmp_path))
     monkeypatch.setenv("WHISPERX_HOST", "127.0.0.1")
     monkeypatch.setenv("WHISPERX_PORT", "8880")
+    # Ensure HF token is not inherited from local .env
+    monkeypatch.delenv("WHISPERX_HF_TOKEN", raising=False)
 
 
 @pytest.fixture
