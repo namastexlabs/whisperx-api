@@ -46,13 +46,16 @@ def bump_rc(current: str) -> str:
 
 
 def promote_stable(current: str) -> str:
-    """Promote RC to stable version.
+    """Promote RC to stable version, or return stable version as-is for initial release.
 
     Examples:
         2.1.0-rc.5 -> 2.1.0
+        1.0.0 -> 1.0.0 (initial release, no change needed)
     """
     if "-rc." not in current:
-        raise ValueError(f"Cannot promote non-RC version: {current}")
+        # Already stable - allow for initial releases
+        print(f"Version {current} is already stable, proceeding with release")
+        return current
     return current.split("-rc.")[0]
 
 

@@ -110,8 +110,16 @@ jobs:
       - name: Commit and tag
         run: |
           git add pyproject.toml src/murmurai/__init__.py
-          git commit -m "chore: release ${{ steps.bump.outputs.tag }}"
-          git tag ${{ steps.bump.outputs.tag }}
+          # Only commit if there are changes (skip for initial releases where version is already correct)
+          if git diff --cached --quiet; then
+            echo "No version changes to commit"
+          else
+            git commit -m "chore: release ${{ steps.bump.outputs.tag }}"
+          fi
+          # Create tag if it doesn't exist
+          if ! git rev-parse ${{ steps.bump.outputs.tag }} >/dev/null 2>&1; then
+            git tag ${{ steps.bump.outputs.tag }}
+          fi
           git push origin HEAD --tags
 
   build:
