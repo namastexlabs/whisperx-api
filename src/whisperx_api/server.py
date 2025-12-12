@@ -113,7 +113,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(
     title="WhisperX API",
-    version="2.0.0",
+    version="2.0.1",
     description="Local WhisperX transcription service with speaker diarization",
     lifespan=lifespan,
     swagger_ui_parameters={

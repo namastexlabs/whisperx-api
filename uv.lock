@@ -2364,7 +2364,7 @@ dependencies = [
 
 [[package]]
 name = "whisperx-api"
-version = "2.0.1rc2"
+version = "2.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
