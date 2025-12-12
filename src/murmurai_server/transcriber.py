@@ -101,9 +101,10 @@ def _ensure_ffmpeg() -> None:
 _ensure_ffmpeg()
 
 import murmurai as murmurai_core  # type: ignore[import-untyped]  # noqa: E402
-from murmurai.config import get_settings  # noqa: E402
-from murmurai.logging import get_logger  # noqa: E402
-from murmurai.model_manager import ModelManager  # noqa: E402
+
+from murmurai_server.config import get_settings  # noqa: E402
+from murmurai_server.logging import get_logger  # noqa: E402
+from murmurai_server.model_manager import ModelManager  # noqa: E402
 
 
 @dataclass

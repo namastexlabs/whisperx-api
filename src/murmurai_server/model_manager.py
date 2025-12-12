@@ -3,14 +3,14 @@
 import threading
 from typing import Any
 
-import torch
-from pyannote.audio import Pipeline
-
 # Import murmurai FIRST - the fork's compat.py applies all patches automatically
 # (torch 2.6+, pyannote 4.x, torchaudio 2.9+)
 import murmurai as murmurai_core  # type: ignore[import-untyped]
-from murmurai.config import get_settings
-from murmurai.logging import get_logger
+import torch
+from pyannote.audio import Pipeline
+
+from murmurai_server.config import get_settings
+from murmurai_server.logging import get_logger
 
 
 class ModelManager:
