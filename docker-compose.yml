@@ -1,0 +1,22 @@
+services:
+  whisperx-api:
+    build: .
+    ports:
+      - "8880:8880"
+    environment:
+      - WHISPERX_API_KEY=${WHISPERX_API_KEY:-namastex888}
+      - WHISPERX_HF_TOKEN=${WHISPERX_HF_TOKEN:-}
+      - WHISPERX_LOG_FORMAT=${WHISPERX_LOG_FORMAT:-text}
+    volumes:
+      # Persist transcripts database
+      - ./data:/app/data
+      # Cache HuggingFace models (saves download time on restart)
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped

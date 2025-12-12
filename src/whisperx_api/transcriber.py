@@ -1,14 +1,69 @@
 """WhisperX transcription pipeline wrapper."""
 
+import ipaddress
 import os
 import shutil
+import socket
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 import pandas as pd
+
+# SSRF Protection: Block internal/private IP ranges and metadata endpoints
+BLOCKED_HOSTS = {
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "169.254.169.254",  # AWS/GCP metadata
+    "metadata.google.internal",  # GCP metadata
+    "metadata.azure.internal",  # Azure metadata
+}
+
+ALLOWED_SCHEMES = {"http", "https"}
+
+
+def validate_audio_url(url: str) -> None:
+    """Validate audio URL for SSRF protection.
+
+    Args:
+        url: URL to validate.
+
+    Raises:
+        ValueError: If URL is invalid or points to a blocked host.
+    """
+    parsed = urlparse(url)
+
+    # Check scheme
+    if parsed.scheme not in ALLOWED_SCHEMES:
+        raise ValueError(f"Invalid URL scheme: {parsed.scheme}. Must be http or https.")
+
+    # Check hostname exists
+    if not parsed.hostname:
+        raise ValueError("Invalid URL: no hostname")
+
+    hostname = parsed.hostname.lower()
+
+    # Check against blocklist
+    if hostname in BLOCKED_HOSTS:
+        raise ValueError(f"Blocked host: {hostname}")
+
+    # Resolve hostname and check if it's a private IP
+    try:
+        resolved_ips = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        for family, _, _, _, sockaddr in resolved_ips:
+            ip_str = sockaddr[0]
+            ip = ipaddress.ip_address(ip_str)
+
+            # Block private, loopback, link-local, and reserved IPs
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                raise ValueError(f"Blocked IP address: {ip_str} (resolved from {hostname})")
+    except socket.gaierror:
+        # If DNS resolution fails, let it proceed (httpx will fail with better error)
+        pass
 
 
 def _ensure_ffmpeg() -> None:
@@ -34,9 +89,12 @@ def _ensure_ffmpeg() -> None:
 
         # Add to PATH
         os.environ["PATH"] = str(symlink_dir) + os.pathsep + os.environ.get("PATH", "")
-        print(f"[whisperx-api] Using bundled ffmpeg: {ffmpeg_path}")
+        # Note: Can't use logger here - runs before logging is setup
     except Exception as e:
-        print(f"[whisperx-api] WARNING: Could not setup bundled ffmpeg: {e}")
+        # Note: Can't use logger here - runs before logging is setup
+        import sys
+
+        print(f"[whisperx-api] WARNING: Could not setup bundled ffmpeg: {e}", file=sys.stderr)
 
 
 # Ensure ffmpeg is available BEFORE importing whisperx
@@ -45,6 +103,7 @@ _ensure_ffmpeg()
 import whisperx  # noqa: E402
 
 from whisperx_api.config import get_settings  # noqa: E402
+from whisperx_api.logging import get_logger  # noqa: E402
 from whisperx_api.model_manager import ModelManager  # noqa: E402
 
 
@@ -136,7 +195,14 @@ async def download_audio(url: str) -> Path:
 
     Returns:
         Path to the downloaded temporary file.
+
+    Raises:
+        ValueError: If URL fails SSRF validation.
+        httpx.HTTPError: If download fails.
     """
+    # SSRF protection: validate URL before downloading
+    validate_audio_url(url)
+
     async with httpx.AsyncClient(timeout=300.0) as client:
         async with client.stream("GET", url, follow_redirects=True) as response:
             response.raise_for_status()
@@ -170,12 +236,20 @@ def transcribe(
         Formatted transcript result with words and utterances.
     """
     settings = get_settings()
+    logger = get_logger()
 
     # Log job start
-    print(f"[whisperx-api] Job started: {audio_path.name}")
-    print(f"[whisperx-api]   Language: {options.language or 'auto-detect'}")
-    print(f"[whisperx-api]   Speaker labels: {options.speaker_labels}")
-    print(f"[whisperx-api]   Word timestamps: {options.word_timestamps}")
+    logger.info(
+        f"Job started: {audio_path.name}",
+        extra={
+            "language": options.language or "auto-detect",
+            "speaker_labels": options.speaker_labels,
+            "word_timestamps": options.word_timestamps,
+        },
+    )
+    logger.debug(f"  Language: {options.language or 'auto-detect'}")
+    logger.debug(f"  Speaker labels: {options.speaker_labels}")
+    logger.debug(f"  Word timestamps: {options.word_timestamps}")
 
     model = ModelManager.get_model()
 
@@ -330,8 +404,14 @@ def transcribe(
     # Log job completion
     segment_count = len(result.get("segments", []))
     word_count = len(formatted.get("words", []))
-    print(f"[whisperx-api] Job completed: {segment_count} segments, {word_count} words")
-    print(f"[whisperx-api]   Detected language: {detected_language}")
+    logger.info(
+        f"Job completed: {segment_count} segments, {word_count} words",
+        extra={
+            "segments": segment_count,
+            "words": word_count,
+            "language": detected_language,
+        },
+    )
 
     return formatted
 

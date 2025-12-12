@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     # Startup options
     skip_dependency_check: bool = False  # Skip startup dependency validation
 
+    # Logging
+    log_format: str = "text"  # "text" (human-readable) or "json" (structured)
+    log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR
+
     @property
     def db_path(self) -> Path:
         """SQLite database path."""

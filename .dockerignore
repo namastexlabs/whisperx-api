@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Python
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.eggs
+dist/
+build/
+
+# Tests
+tests/
+
+# Data (mounted as volume instead)
+data/
+
+# IDE
+.vscode
+.idea
+
+# Development files
+*.md
+!README.md
+.env
+.env.example

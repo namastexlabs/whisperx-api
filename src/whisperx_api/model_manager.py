@@ -11,6 +11,7 @@ import whisperx
 from pyannote.audio import Pipeline
 
 from whisperx_api.config import get_settings
+from whisperx_api.logging import get_logger
 
 
 class ModelManager:
@@ -36,15 +37,16 @@ class ModelManager:
         with cls._lock:
             if cls._model is None:
                 settings = get_settings()
-                print(
-                    f"[whisperx-api] Loading WhisperX model: {settings.model} ({settings.compute_type})..."
+                logger = get_logger()
+                logger.info(
+                    f"Loading WhisperX model: {settings.model} ({settings.compute_type})..."
                 )
                 cls._model = whisperx.load_model(
                     settings.model,
                     device="cuda",
                     compute_type=settings.compute_type,
                 )
-                print("[whisperx-api] WhisperX model loaded successfully")
+                logger.info("WhisperX model loaded successfully")
             return cls._model
 
     @classmethod
@@ -52,7 +54,8 @@ class ModelManager:
         """Get or load alignment model for a specific language."""
         with cls._lock:
             if language not in cls._align_models:
-                print(f"[whisperx-api] Loading alignment model for language: {language}...")
+                logger = get_logger()
+                logger.info(f"Loading alignment model for language: {language}...")
                 try:
                     model, metadata = whisperx.load_align_model(
                         language_code=language,
@@ -66,7 +69,7 @@ class ModelManager:
                         f"Original error: {e}"
                     ) from e
                 cls._align_models[language] = (model, metadata)
-                print(f"[whisperx-api] Alignment model ({language}) loaded successfully")
+                logger.info(f"Alignment model ({language}) loaded successfully")
             return cls._align_models[language]
 
     @classmethod
@@ -85,7 +88,8 @@ class ModelManager:
         with cls._lock:
             if model_name not in cls._diarize_models:
                 settings = get_settings()
-                print(f"[whisperx-api] Loading diarization model: {model_name}...")
+                logger = get_logger()
+                logger.info(f"Loading diarization model: {model_name}...")
 
                 pipeline = Pipeline.from_pretrained(
                     model_name,
@@ -102,7 +106,7 @@ class ModelManager:
                     )
 
                 cls._diarize_models[model_name] = pipeline.to(torch.device(settings.device_str))
-                print(f"[whisperx-api] Diarization model '{model_name}' loaded successfully")
+                logger.info(f"Diarization model '{model_name}' loaded successfully")
             return cls._diarize_models[model_name]
 
     @classmethod
@@ -113,6 +117,7 @@ class ModelManager:
     @classmethod
     def preload(cls) -> None:
         """Preload the main transcription model."""
-        print("[whisperx-api] Preloading models at startup...")
+        logger = get_logger()
+        logger.info("Preloading models at startup...")
         cls.get_model()
-        print("[whisperx-api] Startup preload complete - ready for requests")
+        logger.info("Startup preload complete - ready for requests")

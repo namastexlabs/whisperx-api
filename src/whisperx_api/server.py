@@ -1,6 +1,6 @@
 """FastAPI server for WhisperX transcription."""
 
-import logging
+import logging as stdlib_logging
 import sys
 import tempfile
 import uuid
@@ -18,8 +18,8 @@ warnings.filterwarnings("ignore", message=".*Model was trained with.*")
 warnings.filterwarnings("ignore", message=".*Lightning automatically upgraded.*")
 
 # Reduce lightning/pyannote logging noise
-logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
-logging.getLogger("pyannote").setLevel(logging.WARNING)
+stdlib_logging.getLogger("pytorch_lightning").setLevel(stdlib_logging.WARNING)
+stdlib_logging.getLogger("pyannote").setLevel(stdlib_logging.WARNING)
 
 import httpx  # noqa: E402
 import torch  # noqa: E402
@@ -44,6 +44,7 @@ from whisperx_api.database import (  # noqa: E402
     list_transcripts,
     update_transcript,
 )
+from whisperx_api.logging import get_logger, setup_logging  # noqa: E402
 from whisperx_api.models import (  # noqa: E402
     HealthResponse,
     Pagination,
@@ -59,6 +60,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan - initialize database and preload model on startup."""
     settings = get_settings()
 
+    # Setup structured logging
+    setup_logging(log_format=settings.log_format, log_level=settings.log_level)
+    logger = get_logger()
+
+    # Security warning for default API key (print for high visibility)
+    if settings.api_key == "namastex888":
+        print("\n" + "=" * 70)
+        print("[SECURITY] ⚠️  Using default API key 'namastex888'")
+        print("[SECURITY] ⚠️  This key is publicly known - anyone can access your API!")
+        print("[SECURITY] ⚠️  For production, set: WHISPERX_API_KEY=<your-secure-key>")
+        print("[SECURITY] ⚠️  Docs: https://github.com/namastexlabs/whisperx-api#security")
+        print("=" * 70 + "\n")
+
     # Run dependency checks (unless skipped)
     if not settings.skip_dependency_check:
         from whisperx_api.deps import print_dependency_report, validate_dependencies
@@ -68,14 +82,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         statuses = validate_dependencies(require_diarization=require_diarization)
 
         if not print_dependency_report(statuses):
-            print("\n[ERROR] Required dependencies missing. See above for install instructions.")
-            print("        To skip this check: WHISPERX_SKIP_DEPENDENCY_CHECK=true")
+            logger.error("Required dependencies missing. See above for install instructions.")
+            logger.error("To skip this check: WHISPERX_SKIP_DEPENDENCY_CHECK=true")
             sys.exit(1)
 
     # Set default CUDA device if available
     if torch.cuda.is_available():
         torch.cuda.set_device(settings.device)
-        print(f"Using GPU [{settings.device}]: {torch.cuda.get_device_name(settings.device)}")
+        logger.info(f"Using GPU [{settings.device}]: {torch.cuda.get_device_name(settings.device)}")
 
     await init_db()
 
@@ -86,13 +100,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Preload alignment models for configured languages
     if settings.preload_languages:
-        print(f"Preloading alignment models for: {settings.preload_languages}")
+        logger.info(f"Preloading alignment models for: {settings.preload_languages}")
         for lang in settings.preload_languages:
             try:
                 ModelManager.get_align_model(lang)
-                print(f"  Loaded: {lang}")
+                logger.info(f"  Alignment model loaded: {lang}")
             except Exception as e:
-                print(f"  Failed to load {lang}: {e}")
+                logger.warning(f"  Failed to load alignment model {lang}: {e}")
 
     yield
 
@@ -207,6 +221,7 @@ def process_transcription(
 
 async def send_webhook(transcript_id: str, webhook_url: str, auth_header: str | None) -> None:
     """Send webhook notification with transcript result."""
+    logger = get_logger()
     try:
         result = await get_transcript(transcript_id)
         if not result:
@@ -220,7 +235,7 @@ async def send_webhook(transcript_id: str, webhook_url: str, auth_header: str | 
             await client.post(webhook_url, json=result, headers=headers)
     except Exception as e:
         # Log but don't fail on webhook errors
-        print(f"Webhook failed for {transcript_id}: {e}")
+        logger.warning(f"Webhook failed for {transcript_id}: {e}")
 
 
 # Transcript endpoints (auth required)

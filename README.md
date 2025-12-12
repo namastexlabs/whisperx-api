@@ -22,6 +22,7 @@
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-api-reference">API</a> •
   <a href="#-configuration">Config</a> •
+  <a href="#-security">Security</a> •
   <a href="#-development">Development</a>
 </p>
 
@@ -92,6 +93,17 @@ uvx whisperx-api
 pip install whisperx-api
 whisperx-api
 ```
+
+### Option D: Docker (GPU required)
+
+```bash
+# Clone and run with docker compose
+git clone https://github.com/namastexlabs/whisperx-api.git
+cd whisperx-api
+docker compose up
+```
+
+Requires NVIDIA Container Toolkit. Set `WHISPERX_API_KEY` in environment for production.
 
 The API starts at `http://localhost:8880`. Swagger docs at `/docs`.
 
@@ -178,6 +190,8 @@ All settings via environment variables with `WHISPERX_` prefix. Everything has s
 | `WHISPERX_DATA_DIR` | `./data` | SQLite database location |
 | `WHISPERX_HF_TOKEN` | - | HuggingFace token (for diarization) |
 | `WHISPERX_DEVICE` | `0` | GPU device index |
+| `WHISPERX_LOG_FORMAT` | `text` | Logging format (`text` or `json`) |
+| `WHISPERX_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
 ### Speaker Diarization Setup
 
@@ -189,6 +203,39 @@ To enable `speaker_labels=true`:
    ```bash
    echo "WHISPERX_HF_TOKEN=hf_xxx" >> ~/.config/whisperx-api/.env
    ```
+
+## Security
+
+### ⚠️ Default API Key Warning
+
+WhisperX API ships with a default API key (`namastex888`) for zero-config local use. **This key is publicly known.**
+
+**For any network-exposed deployment, set a secure key:**
+
+```bash
+# Generate a secure random key
+export WHISPERX_API_KEY=$(openssl rand -hex 32)
+
+# Or add to your .env file
+echo "WHISPERX_API_KEY=$(openssl rand -hex 32)" >> .env
+```
+
+The server will display a security warning at startup if using the default key.
+
+### Network Exposure
+
+- **Local-only (default):** Safe to use default key for `localhost` testing
+- **LAN/Docker:** Change the API key before exposing to your network
+- **Internet:** **Always** use a strong API key + consider a reverse proxy with HTTPS
+
+### SSRF Protection
+
+The API validates all `audio_url` parameters to prevent Server-Side Request Forgery:
+
+- Blocks internal IPs (127.0.0.1, 10.x.x.x, 192.168.x.x, etc.)
+- Blocks cloud metadata endpoints (169.254.169.254)
+- Only allows HTTP/HTTPS schemes
+- Resolves DNS and validates the resolved IP
 
 ## Troubleshooting
 
