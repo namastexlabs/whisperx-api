@@ -32,8 +32,8 @@ def test_max_upload_bytes_property(test_settings):
     assert test_settings.max_upload_bytes == expected
 
 
-def test_missing_api_key_exits(monkeypatch, tmp_path):
-    """Test that missing API key causes clean exit."""
+def test_default_api_key_works(monkeypatch, tmp_path):
+    """Test that default API key allows startup without .env."""
     from whisperx_api.config import get_settings
 
     # Clear cache
@@ -47,11 +47,9 @@ def test_missing_api_key_exits(monkeypatch, tmp_path):
     empty_env.touch()
     monkeypatch.chdir(tmp_path)
 
-    # Should exit with code 1
-    with pytest.raises(SystemExit) as exc_info:
-        get_settings()
-
-    assert exc_info.value.code == 1
+    # Should work with default api_key
+    settings = get_settings()
+    assert settings.api_key == "namastex888"
 
 
 def test_data_dir_is_path(test_settings):

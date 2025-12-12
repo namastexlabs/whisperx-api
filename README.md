@@ -78,17 +78,14 @@ The API starts at `http://localhost:8880`. Swagger docs at `/docs`.
 ### First Transcription
 
 ```bash
-# Get your API key from ~/.config/whisperx-api/.env
-API_KEY=$(grep WHISPERX_API_KEY ~/.config/whisperx-api/.env | cut -d= -f2)
-
-# Transcribe a file
+# Default API key is "namastex888" - works out of the box
 curl -X POST http://localhost:8880/v1/transcript \
-  -H "Authorization: Bearer $API_KEY" \
+  -H "Authorization: namastex888" \
   -F "file=@audio.mp3"
 
-# Check status
+# Check status (replace {id} with returned transcript ID)
 curl http://localhost:8880/v1/transcript/{id} \
-  -H "Authorization: Bearer $API_KEY"
+  -H "Authorization: namastex888"
 ```
 
 ## API Reference
@@ -109,21 +106,21 @@ curl http://localhost:8880/v1/transcript/{id} \
 **File upload:**
 ```bash
 curl -X POST http://localhost:8880/v1/transcript \
-  -H "Authorization: Bearer $API_KEY" \
+  -H "Authorization: namastex888" \
   -F "file=@audio.mp3"
 ```
 
 **URL download:**
 ```bash
 curl -X POST http://localhost:8880/v1/transcript \
-  -H "Authorization: Bearer $API_KEY" \
+  -H "Authorization: namastex888" \
   -F "audio_url=https://example.com/audio.mp3"
 ```
 
 **With speaker diarization:**
 ```bash
 curl -X POST http://localhost:8880/v1/transcript \
-  -H "Authorization: Bearer $API_KEY" \
+  -H "Authorization: namastex888" \
   -F "file=@audio.mp3" \
   -F "speaker_labels=true" \
   -F "speakers_expected=2"
@@ -150,16 +147,17 @@ curl -X POST http://localhost:8880/v1/transcript \
 
 ## Configuration
 
-All settings via environment variables with `WHISPERX_` prefix:
+All settings via environment variables with `WHISPERX_` prefix. Everything has sensible defaults - no `.env` file needed for local use.
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `WHISPERX_API_KEY` | **Yes** | - | API authentication key |
-| `WHISPERX_HOST` | No | `0.0.0.0` | Server bind address |
-| `WHISPERX_PORT` | No | `8880` | Server port |
-| `WHISPERX_MODEL` | No | `large-v3-turbo` | WhisperX model |
-| `WHISPERX_HF_TOKEN` | For diarization | - | HuggingFace token |
-| `WHISPERX_DEVICE` | No | `0` | GPU device index |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `WHISPERX_API_KEY` | `namastex888` | API authentication key |
+| `WHISPERX_HOST` | `0.0.0.0` | Server bind address |
+| `WHISPERX_PORT` | `8880` | Server port |
+| `WHISPERX_MODEL` | `large-v3-turbo` | WhisperX model |
+| `WHISPERX_DATA_DIR` | `./data` | SQLite database location |
+| `WHISPERX_HF_TOKEN` | - | HuggingFace token (for diarization) |
+| `WHISPERX_DEVICE` | `0` | GPU device index |
 
 ### Speaker Diarization Setup
 

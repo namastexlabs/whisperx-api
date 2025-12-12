@@ -1,10 +1,8 @@
 """Configuration management using pydantic-settings."""
 
-import sys
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,8 +15,8 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # API Authentication
-    api_key: str  # Required - no default
+    # API Authentication (default allows uvx to run without .env)
+    api_key: str = "namastex888"
 
     # Server
     host: str = "0.0.0.0"
@@ -74,24 +72,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Get settings instance (cached).
-
-    Provides clear error message when required env vars are missing.
-    """
-    try:
-        return Settings()
-    except ValidationError as e:
-        # Check for missing api_key specifically
-        for error in e.errors():
-            if error["loc"] == ("api_key",):
-                print("\n" + "=" * 60, file=sys.stderr)
-                print("ERROR: WHISPERX_API_KEY environment variable is required.", file=sys.stderr)
-                print("=" * 60, file=sys.stderr)
-                print("\nSet it with:", file=sys.stderr)
-                print("  export WHISPERX_API_KEY=your-secret-key", file=sys.stderr)
-                print("\nOr create a .env file with:", file=sys.stderr)
-                print("  WHISPERX_API_KEY=your-secret-key", file=sys.stderr)
-                print("", file=sys.stderr)
-                sys.exit(1)
-        # Re-raise other validation errors
-        raise
+    """Get settings instance (cached)."""
+    return Settings()
