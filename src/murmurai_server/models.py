@@ -24,8 +24,8 @@ class TranscriptParams(BaseModel):
     min_speakers: int | None = Field(None, description="Minimum expected speakers")
     max_speakers: int | None = Field(None, description="Maximum expected speakers")
     diarize_model: str = Field(
-        "pyannote/speaker-diarization-3.1",
-        description="Diarization model (pyannote/speaker-diarization-3.1 or community-1)",
+        "pyannote/speaker-diarization-community-1",
+        description="Speaker diarization model",
     )
     return_speaker_embeddings: bool = Field(
         False, description="Include speaker embedding vectors in response"

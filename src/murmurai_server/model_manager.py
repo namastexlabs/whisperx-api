@@ -189,13 +189,11 @@ class ModelManager:
             return cls._align_models[language]
 
     @classmethod
-    def get_diarize_model(cls, model_name: str = "pyannote/speaker-diarization-3.1") -> Any:
+    def get_diarize_model(cls, model_name: str = "pyannote/speaker-diarization-community-1") -> Any:
         """Get or load speaker diarization model.
 
         Args:
-            model_name: HuggingFace model ID. Options:
-                - pyannote/speaker-diarization-3.1 (best quality, requires pro license)
-                - pyannote/speaker-diarization-community-1 (free, good quality)
+            model_name: HuggingFace model ID (default: pyannote/speaker-diarization-community-1)
 
         Requires HuggingFace token and license acceptance:
         1. Accept license at https://hf.co/{model_name}

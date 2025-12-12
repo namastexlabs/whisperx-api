@@ -271,8 +271,8 @@ async def submit_transcript(
         Form(description="Maximum expected speakers (leave empty for auto)", examples=[""]),
     ] = None,
     diarize_model: Annotated[
-        str, Form(description="Diarization model (3.1 or community-1)")
-    ] = "pyannote/speaker-diarization-3.1",
+        str, Form(description="Speaker diarization model")
+    ] = "pyannote/speaker-diarization-community-1",
     return_speaker_embeddings: Annotated[
         bool, Form(description="Include speaker embedding vectors")
     ] = False,

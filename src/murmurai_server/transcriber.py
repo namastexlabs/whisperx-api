@@ -122,7 +122,7 @@ class TranscribeOptions:
     speakers_expected: int | None = None
     min_speakers: int | None = None
     max_speakers: int | None = None
-    diarize_model: str = "pyannote/speaker-diarization-3.1"
+    diarize_model: str = "pyannote/speaker-diarization-community-1"
     return_speaker_embeddings: bool = False
 
     # Decoding parameters (🔴 MODEL PARAMS - trigger model reload if non-default)
