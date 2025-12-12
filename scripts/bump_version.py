@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 PYPROJECT_PATH = Path("pyproject.toml")
-INIT_PATH = Path("src/murmurai/__init__.py")
+INIT_PATH = Path("src/murmurai_server/__init__.py")
 
 
 def get_current_version() -> str:
