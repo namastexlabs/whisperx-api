@@ -49,7 +49,7 @@ WhisperX API wraps [WhisperX](https://github.com/m-bain/whisperX) in a REST API 
 
 ### Prerequisites
 
-- **NVIDIA GPU** with 8GB+ VRAM (or CPU mode for testing)
+- **NVIDIA GPU** with 6GB+ VRAM (or CPU mode for testing)
 - **CUDA 12.x** drivers installed
 
 ### Option A: One-Liner Install (Recommended)
@@ -249,7 +249,7 @@ whisperx-api/
 
 - **First request:** ~60-90s (model loading)
 - **Subsequent:** ~same as audio duration
-- **VRAM usage:** ~8-12GB for large-v3-turbo
+- **VRAM usage:** ~5-6GB for large-v3-turbo
 
 </details>
 
