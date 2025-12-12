@@ -63,6 +63,7 @@ packages = ["src/whisperx_api"]
 
 [tool.uv]
 managed = true
+index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
 torch = {index = "pytorch"}
