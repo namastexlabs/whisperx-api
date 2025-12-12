@@ -193,12 +193,6 @@ python -c "import torch; print(torch.cuda.is_available())"
 
 ## Built On
 
-<p align="center">
-  <a href="https://github.com/m-bain/whisperX">
-    <img src="https://img.shields.io/github/stars/m-bain/whisperX?style=social" alt="WhisperX Stars">
-  </a>
-</p>
-
 This project wraps the incredible [WhisperX](https://github.com/m-bain/whisperX) by [@m-bain](https://github.com/m-bain) - fast automatic speech recognition with word-level timestamps and speaker diarization.
 
 ---
@@ -268,5 +262,7 @@ whisperx-api/
 </p>
 
 <p align="center">
-  <a href="https://github.com/namastexlabs/whisperx-api">Star us on GitHub</a>
+  <a href="https://github.com/namastexlabs/whisperx-api">
+    <img src="https://img.shields.io/github/stars/namastexlabs/whisperx-api?style=social" alt="Star us on GitHub">
+  </a>
 </p>
