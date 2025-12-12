@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "murmurai"
-version = "1.0.3-rc.1"
+version = "1.0.3-rc.2"
 description = "GPU-powered transcription API with speaker diarization"
 readme = "README.md"
 requires-python = "==3.12.*"

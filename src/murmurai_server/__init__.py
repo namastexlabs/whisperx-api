@@ -1,3 +1,3 @@
 """MurmurAI - GPU-powered transcription service with speaker diarization."""
 
-__version__ = "1.0.3-rc.1"
+__version__ = "1.0.3-rc.2"
