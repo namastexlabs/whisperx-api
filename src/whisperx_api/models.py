@@ -9,7 +9,7 @@ class TranscriptParams(BaseModel):
     """Request body for creating a transcript.
 
     Supports both URL and file upload (file handled separately in endpoint).
-    All parameters are optional - sensible defaults are applied server-side.
+    All parameters use WhisperX defaults.
     """
 
     # Audio source (URL - file upload handled via multipart form)
@@ -19,72 +19,43 @@ class TranscriptParams(BaseModel):
     language_code: str | None = None
 
     # Speaker diarization
-    speaker_labels: bool | None = Field(
-        None, description="Enable speaker diarization (default: false)"
-    )
-    speakers_expected: int | None = Field(
-        None, description="Expected number of speakers (sets both min and max)"
-    )
+    speaker_labels: bool = Field(False, description="Enable speaker diarization")
+    speakers_expected: int | None = Field(None, description="Expected number of speakers")
     min_speakers: int | None = Field(None, description="Minimum expected speakers")
     max_speakers: int | None = Field(None, description="Maximum expected speakers")
 
     # Transcription task
-    task: Literal["transcribe", "translate"] | None = Field(
-        None,
-        description="'transcribe' for same language, 'translate' to English (default: transcribe)",
+    task: Literal["transcribe", "translate"] = Field(
+        "transcribe", description="'transcribe' for same language, 'translate' to English"
     )
 
-    # Decoding parameters
-    temperature: float | None = Field(
-        None, ge=0.0, le=1.0, description="Sampling temperature (default: 0.0)"
-    )
-    beam_size: int | None = Field(None, ge=1, le=10, description="Beam search size (default: 5)")
-    best_of: int | None = Field(
-        None, ge=1, description="Number of sampling alternatives (default: 5)"
-    )
-    patience: float | None = Field(
-        None, ge=0.0, description="Beam search patience factor (default: 1.0)"
-    )
-    length_penalty: float | None = Field(
-        None, description="Exponential length penalty (default: 1.0)"
-    )
+    # Decoding parameters (WhisperX defaults)
+    temperature: float = Field(0.0, ge=0.0, le=1.0, description="Sampling temperature (0=greedy)")
+    beam_size: int = Field(5, ge=1, le=10, description="Beam search size")
+    best_of: int = Field(5, ge=1, description="Number of sampling alternatives")
+    patience: float = Field(1.0, ge=0.0, description="Beam search patience factor")
+    length_penalty: float = Field(1.0, description="Exponential length penalty")
 
     # Prompt engineering
     initial_prompt: str | None = Field(None, description="Prompt for first transcription window")
     hotwords: str | None = Field(None, description="Comma-separated words to boost recognition")
 
     # Output control
-    word_timestamps: bool | None = Field(
-        None, description="Include word-level timestamps (default: true)"
-    )
-    return_char_alignments: bool | None = Field(
-        None, description="Include character-level alignments (default: false)"
-    )
-    suppress_numerals: bool | None = Field(
-        None, description="Spell out numbers instead of digits (default: false)"
-    )
+    word_timestamps: bool = Field(True, description="Include word-level timestamps")
+    return_char_alignments: bool = Field(False, description="Include character-level alignments")
+    suppress_numerals: bool = Field(False, description="Spell out numbers instead of digits")
 
-    # Hallucination filtering
-    compression_ratio_threshold: float | None = Field(
-        None, description="Filter high compression segments (default: 2.4)"
+    # Hallucination filtering (WhisperX defaults)
+    compression_ratio_threshold: float = Field(2.4, description="Filter high compression segments")
+    no_speech_threshold: float = Field(
+        0.6, ge=0.0, le=1.0, description="Silence detection threshold"
     )
-    no_speech_threshold: float | None = Field(
-        None, ge=0.0, le=1.0, description="Silence detection threshold (default: 0.6)"
-    )
-    condition_on_previous_text: bool | None = Field(
-        None, description="Use previous output as prompt (default: false)"
-    )
+    condition_on_previous_text: bool = Field(False, description="Use previous output as prompt")
 
-    # VAD parameters
-    vad_onset: float | None = Field(
-        None, ge=0.0, le=1.0, description="VAD speech onset threshold (default: 0.5)"
-    )
-    vad_offset: float | None = Field(
-        None, ge=0.0, le=1.0, description="VAD speech offset threshold (default: 0.363)"
-    )
-    chunk_size: int | None = Field(
-        None, ge=1, le=300, description="Maximum audio chunk duration in seconds (default: 30)"
-    )
+    # VAD parameters (WhisperX defaults)
+    vad_onset: float = Field(0.5, ge=0.0, le=1.0, description="VAD speech onset threshold")
+    vad_offset: float = Field(0.363, ge=0.0, le=1.0, description="VAD speech offset threshold")
+    chunk_size: int = Field(30, ge=1, le=300, description="Max audio chunk duration in seconds")
 
     # Webhook callback
     webhook_url: HttpUrl | None = Field(None, description="URL to POST results when complete")

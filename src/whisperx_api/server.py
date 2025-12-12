@@ -236,61 +236,37 @@ async def submit_transcript(
     # File upload (optional) - REQUIRED: either file or audio_url
     file: Annotated[UploadFile | None, File(description="Audio file to transcribe")] = None,
     audio_url: Annotated[str | None, Form(description="URL to download audio from")] = None,
-    # All optional parameters default to None - server applies sensible defaults
+    # All optional parameters with WhisperX defaults
     language_code: Annotated[
-        str | None, Form(description="Language code (default: auto-detect)")
+        str | None, Form(description="Language code (auto-detect if empty)")
     ] = None,
-    speaker_labels: Annotated[
-        bool | None, Form(description="Enable speaker diarization (default: false)")
-    ] = None,
+    speaker_labels: Annotated[bool, Form(description="Enable speaker diarization")] = False,
     speakers_expected: Annotated[
         int | None, Form(description="Expected number of speakers")
     ] = None,
     min_speakers: Annotated[int | None, Form(description="Minimum expected speakers")] = None,
     max_speakers: Annotated[int | None, Form(description="Maximum expected speakers")] = None,
-    task: Annotated[
-        str | None, Form(description="'transcribe' or 'translate' (default: transcribe)")
-    ] = None,
-    temperature: Annotated[
-        float | None, Form(description="Sampling temperature (default: 0.0)")
-    ] = None,
-    beam_size: Annotated[int | None, Form(description="Beam search size (default: 5)")] = None,
-    best_of: Annotated[int | None, Form(description="Sampling alternatives (default: 5)")] = None,
-    patience: Annotated[
-        float | None, Form(description="Beam search patience (default: 1.0)")
-    ] = None,
-    length_penalty: Annotated[
-        float | None, Form(description="Length penalty (default: 1.0)")
-    ] = None,
+    task: Annotated[str, Form(description="'transcribe' or 'translate'")] = "transcribe",
+    temperature: Annotated[float, Form(description="Sampling temperature (0=greedy)")] = 0.0,
+    beam_size: Annotated[int, Form(description="Beam search size")] = 5,
+    best_of: Annotated[int, Form(description="Sampling alternatives")] = 5,
+    patience: Annotated[float, Form(description="Beam search patience")] = 1.0,
+    length_penalty: Annotated[float, Form(description="Length penalty")] = 1.0,
     initial_prompt: Annotated[str | None, Form(description="Prompt for first window")] = None,
     hotwords: Annotated[str | None, Form(description="Comma-separated boost words")] = None,
-    word_timestamps: Annotated[
-        bool | None, Form(description="Include word timestamps (default: true)")
-    ] = None,
-    return_char_alignments: Annotated[
-        bool | None, Form(description="Include char alignments (default: false)")
-    ] = None,
-    suppress_numerals: Annotated[
-        bool | None, Form(description="Spell out numbers (default: false)")
-    ] = None,
+    word_timestamps: Annotated[bool, Form(description="Include word-level timestamps")] = True,
+    return_char_alignments: Annotated[bool, Form(description="Include char alignments")] = False,
+    suppress_numerals: Annotated[bool, Form(description="Spell out numbers")] = False,
     compression_ratio_threshold: Annotated[
-        float | None, Form(description="Hallucination filter (default: 2.4)")
-    ] = None,
-    no_speech_threshold: Annotated[
-        float | None, Form(description="Silence threshold (default: 0.6)")
-    ] = None,
+        float, Form(description="Hallucination filter threshold")
+    ] = 2.4,
+    no_speech_threshold: Annotated[float, Form(description="Silence detection threshold")] = 0.6,
     condition_on_previous_text: Annotated[
-        bool | None, Form(description="Use previous as prompt (default: false)")
-    ] = None,
-    vad_onset: Annotated[
-        float | None, Form(description="VAD onset threshold (default: 0.5)")
-    ] = None,
-    vad_offset: Annotated[
-        float | None, Form(description="VAD offset threshold (default: 0.363)")
-    ] = None,
-    chunk_size: Annotated[
-        int | None, Form(description="Max chunk duration in seconds (default: 30)")
-    ] = None,
+        bool, Form(description="Use previous output as prompt")
+    ] = False,
+    vad_onset: Annotated[float, Form(description="VAD speech onset threshold")] = 0.5,
+    vad_offset: Annotated[float, Form(description="VAD speech offset threshold")] = 0.363,
+    chunk_size: Annotated[int, Form(description="Max chunk duration in seconds")] = 30,
     webhook_url: Annotated[str | None, Form(description="Webhook URL for results")] = None,
     webhook_auth_header: Annotated[
         str | None, Form(description="Webhook Authorization header")
@@ -341,42 +317,36 @@ async def submit_transcript(
         id=transcript_id,
         audio_url=audio_url_for_db,
         language=language_code,
-        speaker_labels=speaker_labels if speaker_labels is not None else False,
+        speaker_labels=speaker_labels,
         speakers_expected=speakers_expected,
         webhook_url=webhook_url,
         webhook_auth_header=webhook_auth_header,
     )
 
-    # Build options with defaults for None values
+    # Build options (all params already have WhisperX defaults from Form)
     options = TranscribeOptions(
         language=language_code,
-        task=task if task is not None else "transcribe",
-        speaker_labels=speaker_labels if speaker_labels is not None else False,
+        task=task,
+        speaker_labels=speaker_labels,
         speakers_expected=speakers_expected,
         min_speakers=min_speakers,
         max_speakers=max_speakers,
-        temperature=temperature if temperature is not None else 0.0,
-        beam_size=beam_size if beam_size is not None else 5,
-        best_of=best_of if best_of is not None else 5,
-        patience=patience if patience is not None else 1.0,
-        length_penalty=length_penalty if length_penalty is not None else 1.0,
+        temperature=temperature,
+        beam_size=beam_size,
+        best_of=best_of,
+        patience=patience,
+        length_penalty=length_penalty,
         initial_prompt=initial_prompt,
         hotwords=hotwords,
-        word_timestamps=word_timestamps if word_timestamps is not None else True,
-        return_char_alignments=return_char_alignments
-        if return_char_alignments is not None
-        else False,
-        suppress_numerals=suppress_numerals if suppress_numerals is not None else False,
-        compression_ratio_threshold=compression_ratio_threshold
-        if compression_ratio_threshold is not None
-        else 2.4,
-        no_speech_threshold=no_speech_threshold if no_speech_threshold is not None else 0.6,
-        condition_on_previous_text=condition_on_previous_text
-        if condition_on_previous_text is not None
-        else False,
-        vad_onset=vad_onset if vad_onset is not None else 0.5,
-        vad_offset=vad_offset if vad_offset is not None else 0.363,
-        chunk_size=chunk_size if chunk_size is not None else 30,
+        word_timestamps=word_timestamps,
+        return_char_alignments=return_char_alignments,
+        suppress_numerals=suppress_numerals,
+        compression_ratio_threshold=compression_ratio_threshold,
+        no_speech_threshold=no_speech_threshold,
+        condition_on_previous_text=condition_on_previous_text,
+        vad_onset=vad_onset,
+        vad_offset=vad_offset,
+        chunk_size=chunk_size,
     )
 
     # Queue background task
