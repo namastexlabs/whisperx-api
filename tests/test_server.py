@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
-from murmurai.database import create_transcript, update_transcript
+from murmurai_server.database import create_transcript, update_transcript
 
 
 class TestHealthEndpoints:

@@ -32,7 +32,7 @@ def test_max_upload_bytes_property(test_settings):
 
 def test_default_api_key_works(monkeypatch, tmp_path):
     """Test that default API key allows startup without .env."""
-    from murmurai.config import get_settings
+    from murmurai_server.config import get_settings
 
     # Clear cache
     get_settings.cache_clear()

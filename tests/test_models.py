@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from murmurai.models import (
+from murmurai_server.models import (
     HealthResponse,
     Pagination,
     ReadyResponse,

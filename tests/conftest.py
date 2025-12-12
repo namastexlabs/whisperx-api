@@ -12,7 +12,7 @@ from httpx import ASGITransport, AsyncClient
 @pytest.fixture(autouse=True)
 def reset_settings_cache():
     """Reset settings cache between tests."""
-    from murmurai.config import get_settings
+    from murmurai_server.config import get_settings
 
     get_settings.cache_clear()
     yield
@@ -41,7 +41,7 @@ def test_env(test_api_key: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
 @pytest.fixture
 def test_settings(test_env):
     """Get settings configured for testing."""
-    from murmurai.config import get_settings
+    from murmurai_server.config import get_settings
 
     return get_settings()
 
@@ -49,7 +49,7 @@ def test_settings(test_env):
 @pytest_asyncio.fixture
 async def initialized_db(test_settings):
     """Initialize database for testing."""
-    from murmurai.database import init_db
+    from murmurai_server.database import init_db
 
     await init_db()
 
@@ -57,7 +57,7 @@ async def initialized_db(test_settings):
 @pytest_asyncio.fixture
 async def async_client(test_env, initialized_db) -> AsyncGenerator[AsyncClient, None]:
     """Create async HTTP client for testing API endpoints."""
-    from murmurai.server import app
+    from murmurai_server.server import app
 
     async with AsyncClient(
         transport=ASGITransport(app=app),
