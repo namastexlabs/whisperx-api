@@ -191,6 +191,26 @@ python -c "import torch; print(torch.cuda.is_available())"
 
 ---
 
+## ✨ Roadmap
+
+> Star-powered development. You decide what gets built next.
+
+<p align="center">
+  <img src="https://progress-bar.xyz/12/?scale=1000&width=400&color=babaca&suffix=%20/%201000%20⭐" />
+</p>
+
+<p align="center">
+  🔒 <b>250</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>500</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>1000</b> Real-time Streaming
+</p>
+
+<p align="center">
+  <a href="https://github.com/namastexlabs/whisperx-api"><b>⭐ Star to vote</b></a>
+</p>
+
+---
+
 ## Built On
 
 This project wraps the incredible [WhisperX](https://github.com/m-bain/whisperX) by [@m-bain](https://github.com/m-bain) - fast automatic speech recognition with word-level timestamps and speaker diarization.
