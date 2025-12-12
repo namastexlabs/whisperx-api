@@ -109,7 +109,7 @@ jobs:
 
       - name: Commit and tag
         run: |
-          git add pyproject.toml src/murmurai/__init__.py
+          git add pyproject.toml src/murmurai_server/__init__.py
           # Only commit if there are changes (skip for initial releases where version is already correct)
           if git diff --cached --quiet; then
             echo "No version changes to commit"
