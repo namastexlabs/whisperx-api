@@ -63,13 +63,18 @@ class TranscribeOptions:
     speakers_expected: int | None = None
     min_speakers: int | None = None
     max_speakers: int | None = None
+    diarize_model: str = "pyannote/speaker-diarization-3.1"
+    return_speaker_embeddings: bool = False
 
     # Decoding parameters
     temperature: float = 0.0
+    temperature_increment_on_fallback: float | None = 0.2
     beam_size: int = 5
     best_of: int = 5
     patience: float = 1.0
     length_penalty: float = 1.0
+    suppress_tokens: str | None = None
+    logprob_threshold: float | None = -1.0
 
     # Prompt engineering
     initial_prompt: str | None = None
@@ -79,6 +84,7 @@ class TranscribeOptions:
     word_timestamps: bool = False
     return_char_alignments: bool = False
     suppress_numerals: bool = False
+    interpolate_method: str = "nearest"
 
     # Hallucination filtering
     compression_ratio_threshold: float = 2.4
@@ -86,9 +92,16 @@ class TranscribeOptions:
     condition_on_previous_text: bool = False
 
     # VAD parameters
+    vad_method: str = "pyannote"
     vad_onset: float = 0.5
     vad_offset: float = 0.363
     chunk_size: int = 30
+
+    # Subtitle/segment formatting
+    segment_resolution: str = "sentence"
+    max_line_width: int | None = None
+    max_line_count: int | None = None
+    highlight_words: bool = False
 
 
 def convert_pyannote_to_whisperx(diarization: Any) -> pd.DataFrame:
@@ -185,7 +198,7 @@ def transcribe(
     if options.task != "transcribe":
         transcribe_kwargs["task"] = options.task
 
-    # VAD options (these are passed to the asr options in whisperx)
+    # ASR decoding options
     asr_options: dict[str, Any] = {}
     if options.initial_prompt:
         asr_options["initial_prompt"] = options.initial_prompt
@@ -193,8 +206,18 @@ def transcribe(
         asr_options["hotwords"] = options.hotwords
     if options.suppress_numerals:
         asr_options["suppress_numerals"] = options.suppress_numerals
-    if options.temperature != 0.0:
-        asr_options["temperatures"] = [options.temperature]
+
+    # Temperature handling with fallback increment
+    if options.temperature != 0.0 or options.temperature_increment_on_fallback is not None:
+        temps = [options.temperature]
+        if options.temperature_increment_on_fallback is not None:
+            # Add fallback temperatures up to 1.0
+            t = options.temperature + options.temperature_increment_on_fallback
+            while t <= 1.0:
+                temps.append(t)
+                t += options.temperature_increment_on_fallback
+        asr_options["temperatures"] = temps
+
     if options.beam_size != 5:
         asr_options["beam_size"] = options.beam_size
     if options.best_of != 5:
@@ -210,6 +233,15 @@ def transcribe(
     if options.condition_on_previous_text:
         asr_options["condition_on_previous_text"] = True
 
+    # Additional ASR options from new parameters
+    if options.suppress_tokens:
+        # Parse comma-separated token IDs
+        token_ids = [int(t.strip()) for t in options.suppress_tokens.split(",") if t.strip()]
+        if token_ids:
+            asr_options["suppress_tokens"] = token_ids
+    if options.logprob_threshold is not None and options.logprob_threshold != -1.0:
+        asr_options["log_prob_threshold"] = options.logprob_threshold
+
     # VAD options
     vad_options: dict[str, Any] = {}
     if options.vad_onset != 0.5:
@@ -218,6 +250,10 @@ def transcribe(
         vad_options["vad_offset"] = options.vad_offset
     if options.chunk_size != 30:
         transcribe_kwargs["chunk_size"] = options.chunk_size
+
+    # VAD method selection (pyannote default, silero is lighter alternative)
+    if options.vad_method != "pyannote":
+        transcribe_kwargs["vad_method"] = options.vad_method
 
     if asr_options:
         transcribe_kwargs["asr_options"] = asr_options
@@ -243,14 +279,16 @@ def transcribe(
             audio,
             device="cuda",
             return_char_alignments=options.return_char_alignments,
+            interpolate_method=options.interpolate_method,
         )
 
     if progress_callback:
         progress_callback(0.8)  # Alignment done
 
     # Speaker diarization (if requested)
+    speaker_embeddings = None
     if options.speaker_labels:
-        diarize_model = ModelManager.get_diarize_model()
+        diarize_pipeline = ModelManager.get_diarize_model(options.diarize_model)
 
         # Determine min/max speakers
         min_spk = options.min_speakers
@@ -264,11 +302,19 @@ def transcribe(
         import torch
 
         waveform = torch.from_numpy(audio[None, :])
-        diarization = diarize_model(
+        diarization = diarize_pipeline(
             {"waveform": waveform, "sample_rate": 16000},
             min_speakers=min_spk,
             max_speakers=max_spk,
+            return_embeddings=options.return_speaker_embeddings,
         )
+
+        # Extract speaker embeddings if requested
+        if options.return_speaker_embeddings and hasattr(diarization, "embeddings"):
+            speaker_embeddings = {
+                speaker: emb.tolist() for speaker, emb in diarization.embeddings.items()
+            }
+
         # Convert pyannote output to whisperx format
         diarize_segments = convert_pyannote_to_whisperx(diarization)
         result = whisperx.assign_word_speakers(diarize_segments, result)
@@ -276,7 +322,7 @@ def transcribe(
     if progress_callback:
         progress_callback(0.95)  # Diarization done
 
-    formatted = format_result(result, detected_language)
+    formatted = format_result(result, detected_language, speaker_embeddings)
 
     if progress_callback:
         progress_callback(1.0)  # Complete
@@ -290,12 +336,17 @@ def transcribe(
     return formatted
 
 
-def format_result(result: dict[str, Any], language: str) -> dict[str, Any]:
+def format_result(
+    result: dict[str, Any],
+    language: str,
+    speaker_embeddings: dict[str, list[float]] | None = None,
+) -> dict[str, Any]:
     """Format WhisperX result to API response format.
 
     Args:
         result: Raw WhisperX result with segments.
         language: Detected/specified language code.
+        speaker_embeddings: Optional speaker embedding vectors.
 
     Returns:
         Formatted transcript with words and utterances.
@@ -340,7 +391,7 @@ def format_result(result: dict[str, Any], language: str) -> dict[str, Any]:
     total_confidence = sum(w["confidence"] for w in words) / len(words) if words else 0
     audio_duration = max((w["end"] for w in words), default=0)
 
-    return {
+    formatted = {
         "text": full_text,
         "words": words,
         "utterances": utterances,
@@ -348,3 +399,9 @@ def format_result(result: dict[str, Any], language: str) -> dict[str, Any]:
         "audio_duration": audio_duration,
         "language_code": language,
     }
+
+    # Include speaker embeddings if available
+    if speaker_embeddings:
+        formatted["speaker_embeddings"] = speaker_embeddings
+
+    return formatted

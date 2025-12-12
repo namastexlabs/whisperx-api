@@ -255,6 +255,12 @@ async def submit_transcript(
         str | None,
         Form(description="Maximum expected speakers (leave empty for auto)", examples=[""]),
     ] = None,
+    diarize_model: Annotated[
+        str, Form(description="Diarization model (3.1 or community-1)")
+    ] = "pyannote/speaker-diarization-3.1",
+    return_speaker_embeddings: Annotated[
+        bool, Form(description="Include speaker embedding vectors")
+    ] = False,
     task: Annotated[str, Form(description="'transcribe' or 'translate'")] = "transcribe",
     initial_prompt: Annotated[
         str | None, Form(description="Prompt for first window", examples=[""])
@@ -263,13 +269,25 @@ async def submit_transcript(
         str | None, Form(description="Comma-separated boost words", examples=[""])
     ] = None,
     temperature: Annotated[float, Form(description="Sampling temperature (0=greedy)")] = 0.0,
+    temperature_increment_on_fallback: Annotated[
+        str | None, Form(description="Temperature increase on decode failure", examples=["0.2"])
+    ] = "0.2",
     beam_size: Annotated[int, Form(description="Beam search size")] = 5,
     best_of: Annotated[int, Form(description="Sampling alternatives")] = 5,
     patience: Annotated[float, Form(description="Beam search patience")] = 1.0,
     length_penalty: Annotated[float, Form(description="Length penalty")] = 1.0,
+    suppress_tokens: Annotated[
+        str | None, Form(description="Comma-separated token IDs to suppress", examples=[""])
+    ] = None,
+    logprob_threshold: Annotated[
+        float, Form(description="Log probability threshold for filtering")
+    ] = -1.0,
     word_timestamps: Annotated[bool, Form(description="Include word-level timestamps")] = False,
     return_char_alignments: Annotated[bool, Form(description="Include char alignments")] = False,
     suppress_numerals: Annotated[bool, Form(description="Spell out numbers")] = False,
+    interpolate_method: Annotated[
+        str, Form(description="Word boundary interpolation: nearest, linear, ignore")
+    ] = "nearest",
     compression_ratio_threshold: Annotated[
         float, Form(description="Hallucination filter threshold")
     ] = 2.4,
@@ -277,9 +295,22 @@ async def submit_transcript(
     condition_on_previous_text: Annotated[
         bool, Form(description="Use previous output as prompt")
     ] = False,
+    vad_method: Annotated[str, Form(description="VAD algorithm: pyannote or silero")] = "pyannote",
     vad_onset: Annotated[float, Form(description="VAD speech onset threshold")] = 0.5,
     vad_offset: Annotated[float, Form(description="VAD speech offset threshold")] = 0.363,
     chunk_size: Annotated[int, Form(description="Max chunk duration in seconds")] = 30,
+    segment_resolution: Annotated[
+        str, Form(description="Segment splitting: sentence or chunk")
+    ] = "sentence",
+    max_line_width: Annotated[
+        str | None, Form(description="Max chars per subtitle line", examples=[""])
+    ] = None,
+    max_line_count: Annotated[
+        str | None, Form(description="Max lines per subtitle segment", examples=[""])
+    ] = None,
+    highlight_words: Annotated[
+        bool, Form(description="Highlight current word in subtitles")
+    ] = False,
     webhook_url: Annotated[
         str | None, Form(description="Webhook URL for results", examples=[""])
     ] = None,
@@ -304,6 +335,7 @@ async def submit_transcript(
     language_code = language_code if language_code else None
     initial_prompt = initial_prompt if initial_prompt else None
     hotwords = hotwords if hotwords else None
+    suppress_tokens = suppress_tokens if suppress_tokens else None
     webhook_url = webhook_url if webhook_url else None
     webhook_auth_header = webhook_auth_header if webhook_auth_header else None
 
@@ -312,6 +344,13 @@ async def submit_transcript(
     speakers_expected_int: int | None = int(speakers_expected) if speakers_expected else None
     min_speakers_int: int | None = int(min_speakers) if min_speakers else None
     max_speakers_int: int | None = int(max_speakers) if max_speakers else None
+
+    # Convert optional numeric strings
+    temp_fallback: float | None = (
+        float(temperature_increment_on_fallback) if temperature_increment_on_fallback else None
+    )
+    max_line_width_int: int | None = int(max_line_width) if max_line_width else None
+    max_line_count_int: int | None = int(max_line_count) if max_line_count else None
 
     # Validate input
     if not file and not audio_url:
@@ -361,22 +400,33 @@ async def submit_transcript(
         speakers_expected=speakers_expected_int,
         min_speakers=min_speakers_int,
         max_speakers=max_speakers_int,
+        diarize_model=diarize_model,
+        return_speaker_embeddings=return_speaker_embeddings,
         temperature=temperature,
+        temperature_increment_on_fallback=temp_fallback,
         beam_size=beam_size,
         best_of=best_of,
         patience=patience,
         length_penalty=length_penalty,
+        suppress_tokens=suppress_tokens,
+        logprob_threshold=logprob_threshold,
         initial_prompt=initial_prompt,
         hotwords=hotwords,
         word_timestamps=word_timestamps,
         return_char_alignments=return_char_alignments,
         suppress_numerals=suppress_numerals,
+        interpolate_method=interpolate_method,
         compression_ratio_threshold=compression_ratio_threshold,
         no_speech_threshold=no_speech_threshold,
         condition_on_previous_text=condition_on_previous_text,
+        vad_method=vad_method,
         vad_onset=vad_onset,
         vad_offset=vad_offset,
         chunk_size=chunk_size,
+        segment_resolution=segment_resolution,
+        max_line_width=max_line_width_int,
+        max_line_count=max_line_count_int,
+        highlight_words=highlight_words,
     )
 
     # Queue background task
@@ -472,6 +522,30 @@ async def get_json(transcript_id: str) -> JSONResponse:
 
 
 @app.get(
+    "/v1/transcript/{transcript_id}/tsv",
+    dependencies=[Depends(verify_api_key)],
+)
+async def get_tsv(transcript_id: str) -> PlainTextResponse:
+    """Export transcript as tab-separated values.
+
+    Format: start<tab>end<tab>speaker<tab>text
+    Times are in milliseconds.
+    """
+    result = await get_transcript(transcript_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Transcript not found")
+    if result["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Transcript not ready")
+
+    tsv_content = generate_tsv(result.get("utterances") or [])
+    return PlainTextResponse(
+        tsv_content,
+        media_type="text/tab-separated-values",
+        headers={"Content-Disposition": f'attachment; filename="{transcript_id}.tsv"'},
+    )
+
+
+@app.get(
     "/v1/transcript/{transcript_id}/words",
     dependencies=[Depends(verify_api_key)],
 )
@@ -555,3 +629,20 @@ def format_timestamp_vtt(ms: int) -> str:
     m, s = divmod(s, 60)
     h, m = divmod(m, 60)
     return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
+
+
+def generate_tsv(utterances: list[dict[str, Any]]) -> str:
+    """Generate TSV format from utterances.
+
+    Format: start<tab>end<tab>speaker<tab>text
+    Times are in milliseconds.
+    """
+    lines = ["start\tend\tspeaker\ttext"]  # Header
+    for utterance in utterances:
+        start = utterance["start"]
+        end = utterance["end"]
+        speaker = utterance.get("speaker", "")
+        # Escape tabs and newlines in text
+        text = utterance["text"].replace("\t", " ").replace("\n", " ")
+        lines.append(f"{start}\t{end}\t{speaker}\t{text}")
+    return "\n".join(lines)

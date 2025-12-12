@@ -22,7 +22,7 @@ class ModelManager:
 
     _model: Any = None
     _align_models: dict[str, tuple[Any, Any]] = {}
-    _diarize_model: Any = None
+    _diarize_models: dict[str, Any] = {}  # Cache by model name
     _lock = threading.Lock()
 
     @classmethod
@@ -70,36 +70,40 @@ class ModelManager:
             return cls._align_models[language]
 
     @classmethod
-    def get_diarize_model(cls) -> Any:
+    def get_diarize_model(cls, model_name: str = "pyannote/speaker-diarization-3.1") -> Any:
         """Get or load speaker diarization model.
 
+        Args:
+            model_name: HuggingFace model ID. Options:
+                - pyannote/speaker-diarization-3.1 (best quality, requires pro license)
+                - pyannote/speaker-diarization-community-1 (free, good quality)
+
         Requires HuggingFace token and license acceptance:
-        1. Accept license at https://hf.co/pyannote/speaker-diarization-community-1
+        1. Accept license at https://hf.co/{model_name}
         2. Set WHISPERX_HF_TOKEN in .env
         """
         with cls._lock:
-            if cls._diarize_model is None:
+            if model_name not in cls._diarize_models:
                 settings = get_settings()
-                print(
-                    "[whisperx-api] Loading diarization model: pyannote/speaker-diarization-community-1..."
-                )
+                print(f"[whisperx-api] Loading diarization model: {model_name}...")
 
                 pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization-community-1",
+                    model_name,
                     token=settings.hf_token,
                 )
 
                 if pipeline is None:
                     raise RuntimeError(
-                        "Failed to load diarization model. This model is gated on HuggingFace.\n"
-                        "1. Accept license at https://hf.co/pyannote/speaker-diarization-community-1\n"
+                        f"Failed to load diarization model '{model_name}'. "
+                        f"This model is gated on HuggingFace.\n"
+                        f"1. Accept license at https://hf.co/{model_name}\n"
                         "2. Set WHISPERX_HF_TOKEN in .env with your HuggingFace token\n"
                         "   Get token at: https://hf.co/settings/tokens"
                     )
 
-                cls._diarize_model = pipeline.to(torch.device(settings.device_str))
-                print("[whisperx-api] Diarization model loaded successfully")
-            return cls._diarize_model
+                cls._diarize_models[model_name] = pipeline.to(torch.device(settings.device_str))
+                print(f"[whisperx-api] Diarization model '{model_name}' loaded successfully")
+            return cls._diarize_models[model_name]
 
     @classmethod
     def is_loaded(cls) -> bool:
