@@ -57,7 +57,7 @@ class TestTranscriptEndpoints:
         test_audio = tmp_path / "test.mp3"
         test_audio.touch()
 
-        with patch("murmurai.server.download_audio", new_callable=AsyncMock) as mock_dl:
+        with patch("murmurai_server.server.download_audio", new_callable=AsyncMock) as mock_dl:
             mock_dl.return_value = test_audio
 
             response = await async_client.post(
@@ -80,7 +80,7 @@ class TestTranscriptEndpoints:
         test_audio = tmp_path / "test.mp3"
         test_audio.touch()
 
-        with patch("murmurai.server.download_audio", new_callable=AsyncMock) as mock_dl:
+        with patch("murmurai_server.server.download_audio", new_callable=AsyncMock) as mock_dl:
             mock_dl.return_value = test_audio
 
             response = await async_client.post(
