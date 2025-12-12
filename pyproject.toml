@@ -54,7 +54,6 @@ packages = ["src/murmurai_server"]
 "src" = ""
 
 [tool.uv]
-python = "3.12"
 managed = true
 index-strategy = "unsafe-best-match"
 
