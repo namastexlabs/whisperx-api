@@ -7,7 +7,7 @@ name = "murmurai"
 version = "1.0.1"
 description = "GPU-powered transcription API with speaker diarization"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = "==3.12.*"
 license = {text = "MIT"}
 keywords = ["murmurai", "transcription", "speech-to-text", "api", "whisper", "diarization"]
 authors = [
@@ -54,6 +54,7 @@ packages = ["src/murmurai_server"]
 "src" = ""
 
 [tool.uv]
+python = "3.12"
 managed = true
 index-strategy = "unsafe-best-match"
 
