@@ -24,7 +24,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "whisperx>=3.1.1",
+    # Use our modernized whisperX fork with pyannote 4.x + torch 2.6+ compatibility
+    "whisperx @ git+https://github.com/namastexlabs/whisperX.git@main",
     "torch>=2.9.0",
     "fastapi>=0.100",
     "uvicorn>=0.20",
@@ -57,6 +58,9 @@ dev = [
     "ruff>=0.1",
     "mypy>=1.0",
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/whisperx_api"]

@@ -235,15 +235,35 @@ check_gpu() {
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 install_whisperx_api() {
-    echo -e "${CYAN}🎙️ Installing whisperx-api...${NC}"
+    echo -e "${CYAN}🎙️ How would you like to use whisperx-api?${NC}"
+    echo ""
+    echo -e "  1) ${GREEN}Run now (recommended)${NC} - No installation, runs immediately"
+    echo "     Uses: uvx whisperx-api"
+    echo ""
+    echo "  2) Install globally - Adds 'whisperx-api' command to your PATH"
+    echo "     Uses: uv tool install whisperx-api"
+    echo ""
+    read -p "Choose [1/2] (default: 1): " -n 1 -r
+    echo
 
-    # Install as a uv tool (globally available)
-    if uv tool install whisperx-api 2>/dev/null; then
-        echo -e "${GREEN}✅ whisperx-api installed successfully!${NC}"
-    else
-        echo -e "${YELLOW}⚠️  uv tool install failed, trying pip...${NC}"
-        uv pip install --system whisperx-api
-    fi
+    case $REPLY in
+        2)
+            echo -e "${MAGENTA}📦 Installing globally...${NC}"
+            if uv tool install whisperx-api; then
+                echo -e "${GREEN}✅ Installed! Run anytime with: whisperx-api${NC}"
+            else
+                echo -e "${RED}❌ Installation failed. Try running directly with: uvx whisperx-api${NC}"
+                exit 1
+            fi
+            ;;
+        *)
+            echo -e "${GREEN}✅ Ready to run!${NC}"
+            echo ""
+            echo "Starting whisperx-api..."
+            echo ""
+            exec uvx whisperx-api
+            ;;
+    esac
     echo ""
 }
 
