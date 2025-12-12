@@ -151,7 +151,7 @@ def transcribe(
         progress_callback: Optional callback(progress: float) for progress updates.
 
     Returns:
-        AssemblyAI-compatible transcript result.
+        Formatted transcript result with words and utterances.
     """
     settings = get_settings()
 
@@ -287,14 +287,14 @@ def transcribe(
 
 
 def format_result(result: dict[str, Any], language: str) -> dict[str, Any]:
-    """Format WhisperX result to AssemblyAI-compatible format.
+    """Format WhisperX result to API response format.
 
     Args:
         result: Raw WhisperX result with segments.
         language: Detected/specified language code.
 
     Returns:
-        AssemblyAI-compatible transcript format.
+        Formatted transcript with words and utterances.
     """
     words: list[dict[str, Any]] = []
     utterances: list[dict[str, Any]] = []

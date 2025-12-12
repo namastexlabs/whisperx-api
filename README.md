@@ -1,10 +1,10 @@
 # WhisperX API
 
-Local WhisperX transcription service with AssemblyAI-compatible API.
+Local WhisperX transcription API with speaker diarization and word-level timestamps.
 
 ## Features
 
-- **AssemblyAI-compatible API** - Drop-in replacement for AssemblyAI transcription
+- **REST API** - Simple HTTP endpoints for transcription
 - **Speaker diarization** - Identify and label multiple speakers
 - **Word-level timestamps** - Precise alignment for each word
 - **Multiple export formats** - SRT, WebVTT, TXT, JSON

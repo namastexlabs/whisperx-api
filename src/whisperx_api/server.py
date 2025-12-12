@@ -1,4 +1,4 @@
-"""FastAPI server with AssemblyAI-compatible endpoints."""
+"""FastAPI server for WhisperX transcription."""
 
 import logging
 import sys
@@ -99,7 +99,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title="WhisperX API",
     version="2.0.0",
-    description="Local WhisperX transcription service with AssemblyAI-compatible API",
+    description="Local WhisperX transcription service with speaker diarization",
     lifespan=lifespan,
     swagger_ui_parameters={
         "tryItOutEnabled": True,  # Enable "Try it out" by default

@@ -14,7 +14,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
     """Verify API key from Authorization header.
 
     Supports both formats:
-    - AssemblyAI-style: just the API key
+    - Raw API key
     - Bearer token: "Bearer <api_key>"
 
     Uses timing-safe comparison to prevent timing attacks.

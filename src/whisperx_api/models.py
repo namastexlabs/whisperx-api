@@ -1,4 +1,4 @@
-"""Pydantic models for API request/response - AssemblyAI compatible."""
+"""Pydantic models for API request/response."""
 
 from typing import Literal
 
