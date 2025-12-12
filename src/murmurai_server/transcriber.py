@@ -125,7 +125,7 @@ class TranscribeOptions:
     diarize_model: str = "pyannote/speaker-diarization-3.1"
     return_speaker_embeddings: bool = False
 
-    # Decoding parameters
+    # Decoding parameters (🔴 MODEL PARAMS - trigger model reload if non-default)
     temperature: float = 0.0
     temperature_increment_on_fallback: float | None = 0.2
     beam_size: int = 5
@@ -150,7 +150,7 @@ class TranscribeOptions:
     no_speech_threshold: float = 0.6
     condition_on_previous_text: bool = False
 
-    # VAD parameters
+    # VAD parameters (🔴 MODEL PARAMS - trigger model reload if non-default)
     vad_method: str = "pyannote"
     vad_onset: float = 0.5
     vad_offset: float = 0.363
@@ -161,6 +161,74 @@ class TranscribeOptions:
     max_line_width: int | None = None
     max_line_count: int | None = None
     highlight_words: bool = False
+
+    def has_custom_asr_options(self) -> bool:
+        """Check if any ASR options differ from defaults."""
+        return (
+            self.beam_size != 5
+            or self.best_of != 5
+            or self.patience != 1.0
+            or self.length_penalty != 1.0
+            or self.temperature != 0.0
+            or self.temperature_increment_on_fallback != 0.2
+            or self.compression_ratio_threshold != 2.4
+            or (self.logprob_threshold is not None and self.logprob_threshold != -1.0)
+            or self.no_speech_threshold != 0.6
+            or self.condition_on_previous_text
+            or self.suppress_numerals
+            or self.initial_prompt is not None
+            or self.hotwords is not None
+            or self.suppress_tokens is not None
+        )
+
+    def has_custom_vad_options(self) -> bool:
+        """Check if any VAD options differ from defaults."""
+        return self.vad_onset != 0.5 or self.vad_offset != 0.363 or self.chunk_size != 30
+
+    def build_asr_options(self) -> dict[str, Any] | None:
+        """Build ASR options dict for model loading, or None if defaults."""
+        if not self.has_custom_asr_options():
+            return None
+
+        # Build temperatures list
+        temps = [self.temperature]
+        if self.temperature_increment_on_fallback is not None:
+            t = self.temperature + self.temperature_increment_on_fallback
+            while t <= 1.0:
+                temps.append(t)
+                t += self.temperature_increment_on_fallback
+
+        # Parse suppress_tokens
+        suppress_tokens = [-1]  # Default
+        if self.suppress_tokens:
+            suppress_tokens = [int(t.strip()) for t in self.suppress_tokens.split(",") if t.strip()]
+
+        return {
+            "beam_size": self.beam_size,
+            "best_of": self.best_of,
+            "patience": self.patience,
+            "length_penalty": self.length_penalty,
+            "temperatures": temps,
+            "compression_ratio_threshold": self.compression_ratio_threshold,
+            "log_prob_threshold": self.logprob_threshold or -1.0,
+            "no_speech_threshold": self.no_speech_threshold,
+            "condition_on_previous_text": self.condition_on_previous_text,
+            "suppress_numerals": self.suppress_numerals,
+            "initial_prompt": self.initial_prompt,
+            "hotwords": self.hotwords,
+            "suppress_tokens": suppress_tokens,
+        }
+
+    def build_vad_options(self) -> dict[str, Any] | None:
+        """Build VAD options dict for model loading, or None if defaults."""
+        if not self.has_custom_vad_options():
+            return None
+
+        return {
+            "vad_onset": self.vad_onset,
+            "vad_offset": self.vad_offset,
+            "chunk_size": self.chunk_size,
+        }
 
 
 def convert_pyannote_to_murmurai(diarization: Any) -> pd.DataFrame:
@@ -251,7 +319,28 @@ def transcribe(
     logger.debug(f"  Speaker labels: {options.speaker_labels}")
     logger.debug(f"  Word timestamps: {options.word_timestamps}")
 
-    model = ModelManager.get_model()
+    # Build ASR/VAD options from request (None if defaults = fast path)
+    asr_options = options.build_asr_options()
+    vad_options = options.build_vad_options()
+
+    # Log if using custom options (will trigger model reload)
+    if asr_options or vad_options or options.vad_method != "pyannote":
+        logger.info("Using custom ASR/VAD options (may trigger model reload)...")
+        if asr_options:
+            logger.debug(
+                f"  ASR: beam_size={asr_options.get('beam_size')}, temps={asr_options.get('temperatures')}"
+            )
+        if vad_options:
+            logger.debug(
+                f"  VAD: onset={vad_options.get('vad_onset')}, offset={vad_options.get('vad_offset')}"
+            )
+
+    # Get model (fast path if defaults, slow path if custom options)
+    model = ModelManager.get_model(
+        asr_options=asr_options,
+        vad_options=vad_options,
+        vad_method=options.vad_method,
+    )
 
     # Use request language, fall back to config default, then auto-detect
     effective_language = options.language or settings.language
@@ -262,79 +351,19 @@ def transcribe(
     if progress_callback:
         progress_callback(0.1)  # Audio loaded
 
-    # Build transcription kwargs
+    # Build transcription kwargs (only runtime params supported by transcribe())
     transcribe_kwargs: dict[str, Any] = {
         "batch_size": settings.batch_size,
         "language": effective_language,
     }
 
-    # Add optional parameters if non-default
+    # Add optional runtime parameters
     if options.task != "transcribe":
         transcribe_kwargs["task"] = options.task
-
-    # ASR decoding options
-    asr_options: dict[str, Any] = {}
-    if options.initial_prompt:
-        asr_options["initial_prompt"] = options.initial_prompt
-    if options.hotwords:
-        asr_options["hotwords"] = options.hotwords
-    if options.suppress_numerals:
-        asr_options["suppress_numerals"] = options.suppress_numerals
-
-    # Temperature handling with fallback increment
-    if options.temperature != 0.0 or options.temperature_increment_on_fallback is not None:
-        temps = [options.temperature]
-        if options.temperature_increment_on_fallback is not None:
-            # Add fallback temperatures up to 1.0
-            t = options.temperature + options.temperature_increment_on_fallback
-            while t <= 1.0:
-                temps.append(t)
-                t += options.temperature_increment_on_fallback
-        asr_options["temperatures"] = temps
-
-    if options.beam_size != 5:
-        asr_options["beam_size"] = options.beam_size
-    if options.best_of != 5:
-        asr_options["best_of"] = options.best_of
-    if options.patience != 1.0:
-        asr_options["patience"] = options.patience
-    if options.length_penalty != 1.0:
-        asr_options["length_penalty"] = options.length_penalty
-    if options.compression_ratio_threshold != 2.4:
-        asr_options["compression_ratio_threshold"] = options.compression_ratio_threshold
-    if options.no_speech_threshold != 0.6:
-        asr_options["no_speech_threshold"] = options.no_speech_threshold
-    if options.condition_on_previous_text:
-        asr_options["condition_on_previous_text"] = True
-
-    # Additional ASR options from new parameters
-    if options.suppress_tokens:
-        # Parse comma-separated token IDs
-        token_ids = [int(t.strip()) for t in options.suppress_tokens.split(",") if t.strip()]
-        if token_ids:
-            asr_options["suppress_tokens"] = token_ids
-    if options.logprob_threshold is not None and options.logprob_threshold != -1.0:
-        asr_options["log_prob_threshold"] = options.logprob_threshold
-
-    # VAD options
-    vad_options: dict[str, Any] = {}
-    if options.vad_onset != 0.5:
-        vad_options["vad_onset"] = options.vad_onset
-    if options.vad_offset != 0.363:
-        vad_options["vad_offset"] = options.vad_offset
     if options.chunk_size != 30:
         transcribe_kwargs["chunk_size"] = options.chunk_size
 
-    # VAD method selection (pyannote default, silero is lighter alternative)
-    if options.vad_method != "pyannote":
-        transcribe_kwargs["vad_method"] = options.vad_method
-
-    if asr_options:
-        transcribe_kwargs.update(asr_options)
-    if vad_options:
-        transcribe_kwargs["vad_options"] = vad_options
-
-    # Transcribe
+    # Transcribe (ASR/VAD options are baked into the model)
     result = model.transcribe(audio, **transcribe_kwargs)
 
     if progress_callback:

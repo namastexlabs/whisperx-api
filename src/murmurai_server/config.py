@@ -46,15 +46,52 @@ class Settings(BaseSettings):
     # Pre-loading
     preload_languages: list[str] = []
 
-    # Transcription defaults
-    default_task: str = "transcribe"
-    default_temperature: float = 0.0
-    default_beam_size: int = 5
+    # ASR Options (applied at model load time)
+    beam_size: int = 5
+    best_of: int = 5
+    patience: float = 1.0
+    length_penalty: float = 1.0
+    temperatures: str = "0.0,0.2,0.4,0.6,0.8,1.0"  # Comma-separated fallback temps
+    compression_ratio_threshold: float = 2.4
+    log_prob_threshold: float = -1.0
+    no_speech_threshold: float = 0.6
+    condition_on_previous_text: bool = False
+    suppress_numerals: bool = False
+    initial_prompt: str | None = None
+    hotwords: str | None = None
 
-    # VAD defaults
-    default_vad_onset: float = 0.5
-    default_vad_offset: float = 0.363
-    default_chunk_size: int = 30
+    # VAD Options (applied at model load time)
+    vad_method: str = "pyannote"  # "pyannote" or "silero"
+    vad_onset: float = 0.5
+    vad_offset: float = 0.363
+    chunk_size: int = 30
+
+    @property
+    def asr_options(self) -> dict:
+        """Build ASR options dict for load_model()."""
+        return {
+            "beam_size": self.beam_size,
+            "best_of": self.best_of,
+            "patience": self.patience,
+            "length_penalty": self.length_penalty,
+            "temperatures": [float(t.strip()) for t in self.temperatures.split(",")],
+            "compression_ratio_threshold": self.compression_ratio_threshold,
+            "log_prob_threshold": self.log_prob_threshold,
+            "no_speech_threshold": self.no_speech_threshold,
+            "condition_on_previous_text": self.condition_on_previous_text,
+            "suppress_numerals": self.suppress_numerals,
+            "initial_prompt": self.initial_prompt,
+            "hotwords": self.hotwords,
+        }
+
+    @property
+    def vad_options(self) -> dict:
+        """Build VAD options dict for load_model()."""
+        return {
+            "vad_onset": self.vad_onset,
+            "vad_offset": self.vad_offset,
+            "chunk_size": self.chunk_size,
+        }
 
     # Startup options
     skip_dependency_check: bool = False  # Skip startup dependency validation
