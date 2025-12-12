@@ -45,6 +45,22 @@ WhisperX API wraps [WhisperX](https://github.com/m-bain/whisperX) in a REST API 
 - **Background Processing** - Non-blocking async jobs
 - **Progress Tracking** - Poll for real-time status
 
+## 🔮 What's Next
+
+We're a research lab. Stars help us measure what the community wants most.
+
+<p align="center">
+  <a href="https://github.com/namastexlabs/whisperx-api/stargazers">
+    <img src="https://img.shields.io/github/stars/namastexlabs/whisperx-api?style=for-the-badge&color=f59e0b" alt="GitHub Stars">
+  </a>
+</p>
+
+<p align="center">
+  🔒 <b>250</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>500</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>1000</b> Real-time Streaming
+</p>
+
 ## Quick Start
 
 ### Prerequisites
@@ -188,26 +204,6 @@ python -c "import torch; print(torch.cuda.is_available())"
 **Diarization fails:**
 - Verify HF token: `echo $WHISPERX_HF_TOKEN`
 - Accept license at HuggingFace (link above)
-
----
-
-## ✨ Roadmap
-
-> Star-powered development. You decide what gets built next.
-
-<p align="center">
-  <img src="https://progress-bar.xyz/12/?scale=1000&width=400&color=babaca&suffix=%20/%201000%20⭐" />
-</p>
-
-<p align="center">
-  🔒 <b>250</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
-  🔒 <b>500</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
-  🔒 <b>1000</b> Real-time Streaming
-</p>
-
-<p align="center">
-  <a href="https://github.com/namastexlabs/whisperx-api"><b>⭐ Star to vote</b></a>
-</p>
 
 ---
 
