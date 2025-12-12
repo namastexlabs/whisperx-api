@@ -244,8 +244,6 @@ whisperx-api/
 ### CI/CD
 
 - **CI:** Runs on every push (lint, typecheck, test)
-- **Release:** Label PR with `rc` or `stable` to trigger PyPI publish
-- **Version bumping:** Automatic via `scripts/bump_version.py`
 
 ### Performance Notes
 
