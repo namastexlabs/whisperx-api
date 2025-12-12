@@ -244,13 +244,16 @@ async def submit_transcript(
     ] = None,
     speaker_labels: Annotated[bool, Form(description="Enable speaker diarization")] = False,
     speakers_expected: Annotated[
-        int | None, Form(description="Expected number of speakers (leave empty for auto)")
+        str | None,
+        Form(description="Expected number of speakers (leave empty for auto)", examples=[""]),
     ] = None,
     min_speakers: Annotated[
-        int | None, Form(description="Minimum expected speakers (leave empty for auto)")
+        str | None,
+        Form(description="Minimum expected speakers (leave empty for auto)", examples=[""]),
     ] = None,
     max_speakers: Annotated[
-        int | None, Form(description="Maximum expected speakers (leave empty for auto)")
+        str | None,
+        Form(description="Maximum expected speakers (leave empty for auto)", examples=[""]),
     ] = None,
     task: Annotated[str, Form(description="'transcribe' or 'translate'")] = "transcribe",
     initial_prompt: Annotated[
@@ -295,18 +298,20 @@ async def submit_transcript(
     """
     settings = get_settings()
 
-    # Sanitize nullable fields (convert empty/zero values to None)
-    # This handles Swagger UI sending "" or 0 instead of omitting the field
+    # Sanitize nullable string fields (convert empty strings to None)
+    # This handles Swagger UI sending "" instead of omitting the field
     audio_url = audio_url if audio_url else None
     language_code = language_code if language_code else None
     initial_prompt = initial_prompt if initial_prompt else None
     hotwords = hotwords if hotwords else None
     webhook_url = webhook_url if webhook_url else None
     webhook_auth_header = webhook_auth_header if webhook_auth_header else None
-    # Speaker counts: 0 is invalid (means "not set"), convert to None for auto-detect
-    speakers_expected = speakers_expected if speakers_expected else None
-    min_speakers = min_speakers if min_speakers else None
-    max_speakers = max_speakers if max_speakers else None
+
+    # Convert speaker count strings to integers (None if empty/invalid)
+    # Using str type in Form to show empty in Swagger instead of "0"
+    speakers_expected_int: int | None = int(speakers_expected) if speakers_expected else None
+    min_speakers_int: int | None = int(min_speakers) if min_speakers else None
+    max_speakers_int: int | None = int(max_speakers) if max_speakers else None
 
     # Validate input
     if not file and not audio_url:
@@ -343,7 +348,7 @@ async def submit_transcript(
         audio_url=audio_url_for_db,
         language=language_code,
         speaker_labels=speaker_labels,
-        speakers_expected=speakers_expected,
+        speakers_expected=speakers_expected_int,
         webhook_url=webhook_url,
         webhook_auth_header=webhook_auth_header,
     )
@@ -353,9 +358,9 @@ async def submit_transcript(
         language=language_code,
         task=task,
         speaker_labels=speaker_labels,
-        speakers_expected=speakers_expected,
-        min_speakers=min_speakers,
-        max_speakers=max_speakers,
+        speakers_expected=speakers_expected_int,
+        min_speakers=min_speakers_int,
+        max_speakers=max_speakers_int,
         temperature=temperature,
         beam_size=beam_size,
         best_of=best_of,
