@@ -28,21 +28,21 @@ def bump_rc(current: str) -> str:
     """Bump to next RC version.
 
     Examples:
-        2.0.0 -> 2.1.0-rc.1
-        2.1.0-rc.1 -> 2.1.0-rc.2
-        2.1.0-rc.5 -> 2.1.0-rc.6
+        2.0.0 -> 2.0.1-rc.1
+        2.0.1-rc.1 -> 2.0.1-rc.2
+        2.0.1-rc.5 -> 2.0.1-rc.6
     """
     if "-rc." in current:
         # Already an RC, bump the RC number
         base, rc_num = current.rsplit("-rc.", 1)
         return f"{base}-rc.{int(rc_num) + 1}"
     else:
-        # Stable version, bump minor and start RC.1
+        # Stable version, bump patch and start RC.1
         parts = current.split(".")
         if len(parts) != 3:
             raise ValueError(f"Invalid version format: {current}")
         major, minor, patch = parts
-        return f"{major}.{int(minor) + 1}.0-rc.1"
+        return f"{major}.{minor}.{int(patch) + 1}-rc.1"
 
 
 def promote_stable(current: str) -> str:
