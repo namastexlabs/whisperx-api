@@ -52,7 +52,7 @@ We're a research lab. Stars tell us what the community wants — help us priorit
 
 <p align="center">
   <a href="https://github.com/namastexlabs/murmurai">
-    <img src="https://img.shields.io/github/stars/namastexlabs/murmurai?style=for-the-badge&logo=github&label=⭐%20Star%20to%20Unlock&color=f59e0b" alt="Star to unlock">
+    <img src="https://img.shields.io/github/stars/namastexlabs/murmurai?style=for-the-badge&logo=github&label=Star%20to%20Unlock&color=f59e0b" alt="Star to unlock">
   </a>
 </p>
 
