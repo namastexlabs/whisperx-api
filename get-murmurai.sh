@@ -235,36 +235,11 @@ check_gpu() {
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 install_murmurai_api() {
-    echo -e "${CYAN}🎙️ How would you like to use murmurai?${NC}"
+    echo -e "${GREEN}✅ Ready to run!${NC}"
     echo ""
-    echo -e "  1) ${GREEN}Run now (recommended)${NC} - No installation, runs immediately"
-    echo "     Uses: uvx murmurai"
+    echo "Starting murmurai..."
     echo ""
-    echo "  2) Install globally - Adds 'murmurai' command to your PATH"
-    echo "     Uses: uv tool install murmurai"
-    echo ""
-    read -p "Choose [1/2] (default: 1): " -n 1 -r
-    echo
-
-    case $REPLY in
-        2)
-            echo -e "${MAGENTA}📦 Installing globally...${NC}"
-            if uv tool install murmurai; then
-                echo -e "${GREEN}✅ Installed! Run anytime with: murmurai${NC}"
-            else
-                echo -e "${RED}❌ Installation failed. Try running directly with: uvx murmurai${NC}"
-                exit 1
-            fi
-            ;;
-        *)
-            echo -e "${GREEN}✅ Ready to run!${NC}"
-            echo ""
-            echo "Starting murmurai..."
-            echo ""
-            exec uvx murmurai
-            ;;
-    esac
-    echo ""
+    exec uvx murmurai
 }
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -335,10 +310,6 @@ show_summary() {
     fi
 
     echo "To start the server:"
-    echo ""
-    echo -e "  ${CYAN}murmurai${NC}"
-    echo ""
-    echo "Or run directly (ephemeral):"
     echo ""
     echo -e "  ${CYAN}uvx murmurai${NC}"
     echo ""
