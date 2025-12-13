@@ -46,21 +46,25 @@ MurmurAI wraps [murmurai-core](https://pypi.org/project/murmurai-core/) (our Whi
 - **Background Processing** - Non-blocking async jobs
 - **Progress Tracking** - Poll for real-time status
 
-## What's Next
+## 🔮 What's Next
 
 We're a research lab. Stars tell us what the community wants — help us prioritize!
 
 <p align="center">
-  <a href="https://github.com/namastexlabs/murmurai/stargazers">
+  <a href="https://github.com/namastexlabs/murmurai">
     <img src="https://img.shields.io/github/stars/namastexlabs/murmurai?style=for-the-badge&logo=github&label=Star%20to%20Unlock&color=f59e0b" alt="Star to unlock">
   </a>
 </p>
 
-| Stars | Milestone |
-|:-----:|-----------|
-| 🔒 **250** | Desktop App |
-| 🔒 **500** | MCP Server |
-| 🔒 **1000** | Real-time Streaming |
+<p align="center">
+  <img src="https://progress-bar.xyz/0/?scale=1000&width=400&color=babaca&suffix=%20/%201000" />
+</p>
+
+<p align="center">
+  🔒 <b>250</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>500</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>1000</b> Real-time Streaming
+</p>
 
 ## Quick Start
 
