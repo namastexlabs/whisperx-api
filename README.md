@@ -1,6 +1,10 @@
 <h1 align="center">MurmurAI</h1>
 
 <p align="center">
+  <img src=".github/images/murmur-200.png" alt="MurmurAI Logo" width="200">
+</p>
+
+<p align="center">
   <strong>🎙️ Drop-in replacement for paid transcription APIs. Self-hosted, GPU-powered, speaker diarization. Free forever.</strong>
 </p>
 
