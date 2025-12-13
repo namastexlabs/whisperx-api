@@ -1,7 +1,6 @@
-<h1 align="center">MurmurAI</h1>
-
 <p align="center">
   <img src=".github/images/murmur-200.png" alt="MurmurAI Logo" width="200">
+<h1 align="center">MurmurAI</h1>
 </p>
 
 <p align="center">
