@@ -1,7 +1,7 @@
 <h1 align="center">MurmurAI</h1>
 
 <p align="center">
-  <strong>GPU-powered transcription API in one command</strong>
+  <strong>🎙️ Drop-in replacement for paid transcription APIs. Self-hosted, GPU-powered, speaker diarization. Free forever.</strong>
 </p>
 
 <p align="center">
@@ -57,9 +57,9 @@ We're a research lab. Stars tell us what the community wants — help us priorit
 </p>
 
 <p align="center">
-  🔒 <b>250</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
-  🔒 <b>500</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
-  🔒 <b>1000</b> Real-time Streaming
+  🔒 <b>250 ⭐</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>500 ⭐</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>1000 ⭐</b> Real-time Streaming
 </p>
 
 ## Quick Start
@@ -72,7 +72,7 @@ We're a research lab. Stars tell us what the community wants — help us priorit
 ### Option A: One-Liner Install (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/namastexlabs/murmurai/main/get-murmurai.sh | bash
+curl -fsSL https://install.namastex.ai/get-murmurai.sh | bash
 ```
 
 This installs Python 3.12, uv, checks CUDA, and sets up murmurai.
