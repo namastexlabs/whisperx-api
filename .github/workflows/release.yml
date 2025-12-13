@@ -190,11 +190,81 @@ jobs:
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Generate release notes
+        id: notes
+        run: |
+          # Find previous tag
+          CURRENT_TAG="${{ needs.version.outputs.tag }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 "$CURRENT_TAG^" 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"%s" "$CURRENT_TAG")
+          else
+            COMMITS=$(git log --pretty=format:"%s" "$PREV_TAG..$CURRENT_TAG")
+          fi
+
+          # Parse conventional commits
+          FEATURES=""
+          FIXES=""
+          OTHER=""
+
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            # Skip release commits
+            [[ "$line" =~ ^chore:\ (release|bump) ]] && continue
+
+            if [[ "$line" =~ ^feat ]]; then
+              msg="${line#feat: }"
+              msg="${msg#feat(*)}: }"
+              FEATURES="${FEATURES}- ${msg}\n"
+            elif [[ "$line" =~ ^fix ]]; then
+              msg="${line#fix: }"
+              msg="${msg#fix(*)}: }"
+              FIXES="${FIXES}- ${msg}\n"
+            elif [[ "$line" =~ ^docs|^refactor|^perf|^test|^ci ]]; then
+              # Skip docs, refactor, perf, test, ci for cleaner notes
+              continue
+            else
+              # Include other meaningful commits
+              [[ ! "$line" =~ ^chore ]] && OTHER="${OTHER}- ${line}\n"
+            fi
+          done <<< "$COMMITS"
+
+          # Build release notes
+          NOTES="## What's New\n\n"
+
+          if [ -n "$FEATURES" ]; then
+            NOTES="${NOTES}### ✨ Features\n${FEATURES}\n"
+          fi
+
+          if [ -n "$FIXES" ]; then
+            NOTES="${NOTES}### 🐛 Bug Fixes\n${FIXES}\n"
+          fi
+
+          if [ -n "$OTHER" ]; then
+            NOTES="${NOTES}### 📦 Other Changes\n${OTHER}\n"
+          fi
+
+          NOTES="${NOTES}---\n\n"
+          NOTES="${NOTES}### Installation\n\n"
+          NOTES="${NOTES}\`\`\`bash\n"
+          NOTES="${NOTES}uvx murmurai@${{ needs.version.outputs.version }}\n"
+          NOTES="${NOTES}\`\`\`\n\n"
+          NOTES="${NOTES}Or with pip:\n\n"
+          NOTES="${NOTES}\`\`\`bash\n"
+          NOTES="${NOTES}pip install murmurai==${{ needs.version.outputs.version }}\n"
+          NOTES="${NOTES}\`\`\`"
+
+          # Write to file (handles multiline)
+          echo -e "$NOTES" > release_notes.md
+          echo "Generated release notes"
+          cat release_notes.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.version.outputs.tag }}
           name: ${{ needs.version.outputs.tag }}
-          generate_release_notes: true
+          body_path: release_notes.md
           prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
           files: dist/*
