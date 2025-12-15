@@ -26,17 +26,14 @@ classifiers = [
 
 dependencies = [
     "murmurai-core>=1.0.1",
-    "torch>=2.9.0",
-    "fastapi>=0.100",
-    "uvicorn>=0.20",
-    "pydantic>=2.0",
-    "pydantic-settings>=2.0",
-    "python-multipart>=0.0.6",
-    "aiosqlite>=0.19",
-    "httpx>=0.25",
+    "fastapi>=0.110",
+    "uvicorn>=0.25",
+    "pydantic>=2.5",
+    "pydantic-settings>=2.3",
+    "python-multipart>=0.0.7",
+    "aiosqlite>=0.20",
+    "httpx>=0.27",
     "python-dotenv>=1.0",
-    "torchaudio>=2.8.0",
-    "torchvision>=0.24.1",
 ]
 
 [project.scripts]
@@ -58,13 +55,13 @@ managed = true
 index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
+# These map murmurai-core's transitive torch deps to cu128 index
 torch = {index = "pytorch"}
 torchaudio = {index = "pytorch"}
-torchvision = {index = "pytorch"}
 
 [[tool.uv.index]]
 name = "pytorch"
-url = "https://download.pytorch.org/whl/cu126"
+url = "https://download.pytorch.org/whl/cu128"
 priority = "supplemental"
 
 [tool.ruff]

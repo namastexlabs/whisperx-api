@@ -41,21 +41,21 @@ CUDA toolkit required. Install from:
     },
     "cudnn": {
         "Linux": """\
-cuDNN 8 required for speaker diarization.
+cuDNN 9 required for speaker diarization.
 Install via NVIDIA repository:
   wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
   sudo dpkg -i cuda-keyring_1.1-1_all.deb
-  sudo apt update && sudo apt install -y libcudnn8
+  sudo apt update && sudo apt install -y libcudnn9-cuda-12
 
 Or download manually from: https://developer.nvidia.com/cudnn""",
         "Darwin": """\
 cuDNN not available on macOS. Speaker diarization requires NVIDIA GPU.
 Transcription will work, but speaker_labels=true will fail.""",
         "Windows": """\
-cuDNN 8 required for speaker diarization.
+cuDNN 9 required for speaker diarization.
 1. Download from: https://developer.nvidia.com/cudnn
 2. Extract and copy files to CUDA installation directory
-3. Ensure cudnn64_8.dll is in PATH""",
+3. Ensure cudnn64_9.dll is in PATH""",
     },
     "ffmpeg": {
         "Linux": "sudo apt install ffmpeg  # or: dnf install ffmpeg",
@@ -192,15 +192,15 @@ def check_cudnn() -> DependencyStatus:
         pass
 
     # Fallback: try loading the library directly
+    # Note: cuDNN 9 is required (ctranslate2 >= 4.5.0 dropped cuDNN 8 support)
     if system == "Linux":
         lib_names = [
-            "libcudnn.so.8",
             "libcudnn.so.9",
             "libcudnn.so",
-            "libcudnn_ops_infer.so.8",
+            "libcudnn_ops_infer.so.9",
         ]
     elif system == "Windows":
-        lib_names = ["cudnn64_8.dll", "cudnn64_9.dll", "cudnn.dll"]
+        lib_names = ["cudnn64_9.dll", "cudnn.dll"]
     else:
         lib_names = []
 
@@ -208,7 +208,7 @@ def check_cudnn() -> DependencyStatus:
         try:
             ctypes.CDLL(lib)
             # Extract version from lib name if possible
-            version = "8" if "8" in lib else ("9" if "9" in lib else "unknown")
+            version = "9" if "9" in lib else "unknown"
             return DependencyStatus(
                 name="cuDNN",
                 available=True,
