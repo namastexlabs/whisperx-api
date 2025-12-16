@@ -62,6 +62,7 @@ We're a research lab. Stars tell us what the community wants — help us priorit
 <p align="center">
   🔒 <b>250 ⭐</b> Desktop App &nbsp;&nbsp;│&nbsp;&nbsp;
   🔒 <b>500 ⭐</b> MCP Server &nbsp;&nbsp;│&nbsp;&nbsp;
+  🔒 <b>750 ⭐</b> Native Apple Silicon (MLX) &nbsp;&nbsp;│&nbsp;&nbsp;
   🔒 <b>1000 ⭐</b> Real-time Streaming
 </p>
 
