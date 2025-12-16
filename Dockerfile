@@ -15,12 +15,17 @@ RUN uv python install 3.12 && uv venv /app/.venv --python 3.12
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy project files for reproducible install
+# Copy manifests first to leverage layer caching
 COPY pyproject.toml uv.lock ./
+
+# Install dependencies from lock file (cached unless deps change)
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Copy source code (changes here don't invalidate dep cache)
 COPY src/ ./src/
 
-# Install with frozen lock file (reproducible builds)
-RUN uv sync --frozen --no-dev
+# Install the project itself (fast, no deps to resolve)
+RUN uv pip install --no-deps .
 
 # Runtime config
 RUN mkdir -p /app/data
