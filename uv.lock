@@ -880,7 +880,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20" },
     { name = "fastapi", specifier = ">=0.110" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "murmurai-core", specifier = ">=1.0.1" },
+    { name = "murmurai-core", specifier = ">=1.0.2" },
     { name = "pydantic", specifier = ">=2.5" },
     { name = "pydantic-settings", specifier = ">=2.3" },
     { name = "python-dotenv", specifier = ">=1.0" },
@@ -901,7 +901,7 @@ dev = [
 
 [[package]]
 name = "murmurai-core"
-version = "1.0.1"
+version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "av" },
@@ -918,11 +918,12 @@ dependencies = [
     { name = "torch", version = "2.9.1+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "sys_platform != 'darwin'" },
     { name = "torchaudio", version = "2.9.1", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "platform_machine == 'aarch64' and sys_platform == 'linux'" },
     { name = "torchaudio", version = "2.9.1+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "platform_machine != 'aarch64' or sys_platform != 'linux'" },
+    { name = "torchcodec" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e1/5c/ff69a9adc4072d03a11a94551f90cc36717a6f6e2d26ca6b78520adb7f16/murmurai_core-1.0.1.tar.gz", hash = "sha256:4521304cb0c92eda3d587efda948bac0b2f912c20eb528a5f802b334066f83c9", size = 16782693, upload-time = "2025-12-12T18:52:36.403Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/0f/c7b7658b972ab822832c5e294916a89a7eb914c6e1d3cc4817cc26f42062/murmurai_core-1.0.2.tar.gz", hash = "sha256:8f8e9714ed3fc07512d9b5ddbca78cdbebff4dea1f4c8d5173de92bbd1622b82", size = 16815053, upload-time = "2025-12-16T04:38:18.748Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/66/763aa5908c15ef6b5c8cbf452b0e9d3c43629e6f0d963cd292a81406b161/murmurai_core-1.0.1-py3-none-any.whl", hash = "sha256:c6713aa1564ec3be27be4d776c357a45eaa7f2b907f9eaa0e9b7f141f2528ef5", size = 16482868, upload-time = "2025-12-12T18:52:32.749Z" },
+    { url = "https://files.pythonhosted.org/packages/f1/3f/a14e72d9801676c30c20883462d12ce72ec7835ed1ca3e7f8e14df67b088/murmurai_core-1.0.2-py3-none-any.whl", hash = "sha256:f744d23f593bae7ef26402bdbf2d9783f24d19afc60bea7855c45183cc0d4695", size = 16483288, upload-time = "2025-12-16T04:38:15.231Z" },
 ]
 
 [[package]]

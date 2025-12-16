@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "murmurai-core>=1.0.1",
+    "murmurai-core>=1.0.2",
     "fastapi>=0.110",
     "uvicorn>=0.25",
     "pydantic>=2.5",
