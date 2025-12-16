@@ -55,9 +55,9 @@ managed = true
 index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
-# These map murmurai-core's transitive torch deps to cu128 index
-torch = {index = "pytorch"}
-torchaudio = {index = "pytorch"}
+# Use CUDA 12.8 wheels on Linux/Windows, PyPI CPU wheels on macOS
+torch = {index = "pytorch", marker = "sys_platform != 'darwin'"}
+torchaudio = {index = "pytorch", marker = "sys_platform != 'darwin'"}
 
 [[tool.uv.index]]
 name = "pytorch"
