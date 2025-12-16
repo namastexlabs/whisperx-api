@@ -425,7 +425,13 @@ def transcribe(
     if progress_callback:
         progress_callback(0.95)  # Diarization done
 
-    formatted = format_result(result, detected_language, speaker_embeddings)
+    formatted = format_result(
+        result,
+        detected_language,
+        speaker_embeddings,
+        speaker_labels=options.speaker_labels,
+        word_timestamps=options.word_timestamps,
+    )
 
     if progress_callback:
         progress_callback(1.0)  # Complete
@@ -449,6 +455,8 @@ def format_result(
     result: dict[str, Any],
     language: str,
     speaker_embeddings: dict[str, list[float]] | None = None,
+    speaker_labels: bool = False,
+    word_timestamps: bool = False,
 ) -> dict[str, Any]:
     """Format result to API response format.
 
@@ -456,6 +464,8 @@ def format_result(
         result: Raw result with segments.
         language: Detected/specified language code.
         speaker_embeddings: Optional speaker embedding vectors.
+        speaker_labels: Whether speaker diarization was requested.
+        word_timestamps: Whether word-level timestamps were requested.
 
     Returns:
         Formatted transcript with words and utterances.
@@ -464,50 +474,45 @@ def format_result(
     utterances: list[dict[str, Any]] = []
 
     for segment in result.get("segments", []):
-        speaker = segment.get("speaker", "A")
+        # Only include speaker if diarization was requested
+        speaker = segment.get("speaker") if speaker_labels else None
         utterance_words: list[dict[str, Any]] = []
 
         for word in segment.get("words", []):
-            word_data = {
+            word_data: dict[str, Any] = {
                 "text": word.get("word", ""),
                 "start": int(word.get("start", 0) * 1000),  # Convert to ms
                 "end": int(word.get("end", 0) * 1000),
                 "confidence": word.get("score", 0.0),
-                "speaker": speaker,
             }
+            # Only include speaker if diarization was requested and speaker exists
+            if speaker:
+                word_data["speaker"] = speaker
             words.append(word_data)
             utterance_words.append(word_data)
 
         # Build utterance from segment
-        if utterance_words:
-            avg_confidence = sum(w["confidence"] for w in utterance_words) / len(utterance_words)
-        else:
-            # Without word-level alignment, use 0.85 baseline (Whisper is generally accurate)
-            avg_confidence = 0.85
+        utterance: dict[str, Any] = {
+            "text": segment.get("text", "").strip(),
+            "start": int(segment.get("start", 0) * 1000),
+            "end": int(segment.get("end", 0) * 1000),
+            "words": utterance_words,
+        }
 
-        utterances.append(
-            {
-                "speaker": speaker,
-                "text": segment.get("text", "").strip(),
-                "start": int(segment.get("start", 0) * 1000),
-                "end": int(segment.get("end", 0) * 1000),
-                "confidence": avg_confidence,
-                "words": utterance_words,
-            }
-        )
+        # Only include speaker if diarization was requested and speaker exists
+        if speaker:
+            utterance["speaker"] = speaker
+
+        # Only include confidence if we have word-level data
+        if utterance_words:
+            utterance["confidence"] = sum(w["confidence"] for w in utterance_words) / len(
+                utterance_words
+            )
+
+        utterances.append(utterance)
 
     # Calculate overall metrics
     full_text = " ".join(s.get("text", "").strip() for s in result.get("segments", []))
-
-    # Confidence: use word-level if available, otherwise estimate from utterance count
-    if words:
-        total_confidence = sum(w["confidence"] for w in words) / len(words)
-    elif utterances:
-        # Without word-level alignment, use 0.85 as baseline (Whisper is generally accurate)
-        # This indicates "transcription worked but no word-level confidence available"
-        total_confidence = 0.85
-    else:
-        total_confidence = 0.0
 
     # Audio duration: use word-level if available, otherwise use utterance end times
     if words:
@@ -517,14 +522,17 @@ def format_result(
     else:
         audio_duration = 0
 
-    formatted = {
+    formatted: dict[str, Any] = {
         "text": full_text,
         "words": words,
         "utterances": utterances,
-        "confidence": total_confidence,
         "audio_duration": audio_duration,
         "language_code": language,
     }
+
+    # Only include confidence if we have word-level data
+    if words:
+        formatted["confidence"] = sum(w["confidence"] for w in words) / len(words)
 
     # Include speaker embeddings if available
     if speaker_embeddings:

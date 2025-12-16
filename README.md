@@ -106,6 +106,21 @@ docker compose up
 
 Requires NVIDIA Container Toolkit. Set `MURMURAI_API_KEY` in environment for production.
 
+### Windows Install
+
+Windows requires PyTorch with CUDA from PyTorch's index (PyPI only has CPU wheels for Windows).
+
+```powershell
+# One command (auto-detects CUDA):
+uv pip install murmurai --torch-backend=auto
+
+# Or manually:
+uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+uv pip install murmurai
+```
+
+If you see "PyTorch is CPU-only", reinstall with `--torch-backend=auto` or use the manual method above.
+
 The API starts at `http://localhost:8880`. Swagger docs at `/docs`.
 
 ### First Transcription

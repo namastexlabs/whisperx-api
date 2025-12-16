@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "murmurai-core>=1.0.2",
+    "murmurai-core>=1.0.5",
     "fastapi>=0.110",
     "uvicorn>=0.25",
     "pydantic>=2.5",
@@ -52,17 +52,6 @@ packages = ["src/murmurai_server"]
 
 [tool.uv]
 managed = true
-index-strategy = "unsafe-best-match"
-
-[tool.uv.sources]
-# Use CUDA 12.8 wheels on Linux/Windows, PyPI CPU wheels on macOS
-torch = {index = "pytorch", marker = "sys_platform != 'darwin'"}
-torchaudio = {index = "pytorch", marker = "sys_platform != 'darwin'"}
-
-[[tool.uv.index]]
-name = "pytorch"
-url = "https://download.pytorch.org/whl/cu128"
-priority = "supplemental"
 
 [tool.ruff]
 target-version = "py312"

@@ -39,6 +39,25 @@ Consider using a Linux machine or cloud GPU instance (AWS, GCP, Lambda Labs)."""
 CUDA toolkit required. Install from:
   https://developer.nvidia.com/cuda-downloads""",
     },
+    "cuda_pytorch": {
+        "Linux": """\
+PyTorch was installed without CUDA support. Reinstall with CUDA:
+  uv pip uninstall torch torchaudio -y
+  uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128""",
+        "Darwin": """\
+PyTorch on macOS does not support CUDA. MurmurAI requires NVIDIA GPU.
+Consider using a Linux machine or cloud GPU instance (AWS, GCP, Lambda Labs).""",
+        "Windows": """\
+PyTorch was installed without CUDA support (PyPI only has CPU wheels for Windows).
+
+Reinstall with CUDA auto-detection:
+  uv pip install murmurai --torch-backend=auto
+
+Or manually:
+  uv pip uninstall torch torchaudio
+  uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+  uv pip install murmurai""",
+    },
     "cudnn": {
         "Linux": """\
 cuDNN 9 required for speaker diarization.
@@ -91,12 +110,21 @@ def check_cuda() -> DependencyStatus:
                 details=f"{device_count} GPU(s) available",
             )
         else:
-            return DependencyStatus(
-                name="CUDA",
-                available=False,
-                error="PyTorch cannot detect CUDA",
-                install_hint=get_install_hint("cuda"),
-            )
+            # Check if PyTorch is CPU-only (no CUDA compiled in)
+            if torch.version.cuda is None:
+                return DependencyStatus(
+                    name="CUDA",
+                    available=False,
+                    error="PyTorch is CPU-only (no CUDA support compiled in)",
+                    install_hint=get_install_hint("cuda_pytorch"),
+                )
+            else:
+                return DependencyStatus(
+                    name="CUDA",
+                    available=False,
+                    error="PyTorch cannot detect CUDA",
+                    install_hint=get_install_hint("cuda"),
+                )
     except ImportError:
         return DependencyStatus(
             name="CUDA",
@@ -365,10 +393,15 @@ def print_dependency_report(statuses: list[DependencyStatus]) -> bool:
     else:
         print("  [ERROR] Required dependencies missing!")
         print()
-        print("  Run the install script to fix:")
-        print(
-            "    curl -fsSL https://raw.githubusercontent.com/namastexlabs/murmurai/main/get-murmurai.sh | bash"
-        )
+        system = get_platform()
+        if system == "Windows":
+            print("  See the hints above to fix dependencies.")
+            print()
+            print("  For full instructions, visit:")
+            print("    https://github.com/namastexlabs/murmurai#windows-install")
+        else:
+            print("  Run the install script to fix:")
+            print("    curl -fsSL https://install.namastex.ai/get-murmurai.sh | bash")
         print()
         print("  Or continue anyway with: murmurai --force")
 
