@@ -38,12 +38,14 @@ jobs:
       - name: Detect action
         id: detect
         run: |
-          # Check for bot commits to prevent loops
-          COMMIT_MSG=$(git log -1 --pretty=%s)
-          if [[ "$COMMIT_MSG" =~ ^chore:\ (release|bump) ]]; then
-            echo "Skipping: bot commit detected"
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            exit 0
+          # Check for bot commits to prevent loops (skip for manual dispatch)
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            COMMIT_MSG=$(git log -1 --pretty=%s)
+            if [[ "$COMMIT_MSG" =~ ^chore:\ (release|bump) ]]; then
+              echo "Skipping: bot commit detected"
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
           fi
 
           # Determine action from labels or input
