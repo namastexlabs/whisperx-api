@@ -20,14 +20,14 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: uv run mypy src/
+        entry: uv run --frozen mypy src/
         language: system
         types: [python]
         pass_filenames: false
 
       - id: pytest
         name: pytest
-        entry: uv run pytest tests/ -x -q
+        entry: uv run --frozen pytest tests/ -x -q
         language: system
         types: [python]
         pass_filenames: false
