@@ -105,11 +105,11 @@ class TranscriptWord(BaseModel):
 class TranscriptUtterance(BaseModel):
     """Speaker utterance (segment) data."""
 
-    speaker: str
+    speaker: str | None = None
     text: str
     start: int  # milliseconds
     end: int  # milliseconds
-    confidence: float
+    confidence: float | None = None
     words: list[TranscriptWord] | None = None
 
 
