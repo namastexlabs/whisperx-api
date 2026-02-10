@@ -54,6 +54,28 @@ from murmurai_server.models import (  # noqa: E402
 )
 from murmurai_server.transcriber import TranscribeOptions, download_audio, transcribe  # noqa: E402
 
+# Allow-list of valid Whisper model names (prevents path traversal attacks)
+ALLOWED_MODELS = frozenset(
+    {
+        "tiny",
+        "tiny.en",
+        "base",
+        "base.en",
+        "small",
+        "small.en",
+        "medium",
+        "medium.en",
+        "large",
+        "large-v1",
+        "large-v2",
+        "large-v3",
+        "large-v3-turbo",
+        "distil-large-v2",
+        "distil-large-v3",
+        "deepdml/faster-whisper-large-v3-turbo-ct2",
+    }
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -253,6 +275,15 @@ async def submit_transcript(
     audio_url: Annotated[
         str | None, Form(description="URL to download audio from", examples=[""])
     ] = None,
+    # Model selection (overrides server default)
+    model: Annotated[
+        str | None,
+        Form(
+            description="Whisper model to use (e.g., 'base', 'small', 'medium', 'large-v2', "
+            "'large-v3', 'large-v3-turbo'). Empty = server default.",
+            examples=[""],
+        ),
+    ] = None,
     # All optional parameters with defaults
     language_code: Annotated[
         str | None, Form(description="Language code (auto-detect if empty)", examples=[""])
@@ -347,6 +378,7 @@ async def submit_transcript(
     # Sanitize nullable string fields (convert empty strings to None)
     # This handles Swagger UI sending "" instead of omitting the field
     audio_url = audio_url if audio_url else None
+    model = model if model else None
     language_code = language_code if language_code else None
     initial_prompt = initial_prompt if initial_prompt else None
     hotwords = hotwords if hotwords else None
@@ -366,6 +398,13 @@ async def submit_transcript(
     )
     max_line_width_int: int | None = int(max_line_width) if max_line_width else None
     max_line_count_int: int | None = int(max_line_count) if max_line_count else None
+
+    # Validate model name against allow-list (prevents path traversal attacks)
+    if model and model not in ALLOWED_MODELS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid model: '{model}'. Allowed models: {', '.join(sorted(ALLOWED_MODELS))}",
+        )
 
     # Validate input
     if not file and not audio_url:
@@ -409,6 +448,7 @@ async def submit_transcript(
 
     # Build options (all params already have defaults from Form)
     options = TranscribeOptions(
+        model=model,
         language=language_code,
         task=task,
         speaker_labels=speaker_labels,

@@ -161,3 +161,4 @@ transcriptions-old/
 temp/
 users.db
 start.sh
+.DS_Store

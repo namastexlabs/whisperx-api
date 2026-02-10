@@ -55,10 +55,15 @@ class ModelManager:
 
     @classmethod
     def _hash_options(
-        cls, asr_options: dict | None, vad_options: dict | None, vad_method: str
+        cls,
+        model_name: str | None,
+        asr_options: dict | None,
+        vad_options: dict | None,
+        vad_method: str,
     ) -> str:
         """Create hash key for model options."""
         data = {
+            "model": model_name,
             "asr": asr_options or {},
             "vad": vad_options or {},
             "vad_method": vad_method,
@@ -68,6 +73,7 @@ class ModelManager:
     @classmethod
     def get_model(
         cls,
+        model_name: str | None = None,
         asr_options: dict | None = None,
         vad_options: dict | None = None,
         vad_method: str = "pyannote",
@@ -75,6 +81,8 @@ class ModelManager:
         """Get model with specified options, using cache when possible.
 
         Args:
+            model_name: Whisper model name (e.g., "base", "large-v3-turbo").
+                None = use server default from settings.
             asr_options: Custom ASR options dict. None = use defaults (fast path).
             vad_options: Custom VAD options dict. None = use defaults.
             vad_method: VAD method ("pyannote" or "silero").
@@ -88,12 +96,20 @@ class ModelManager:
         """
         settings = get_settings()
 
-        # Fast path: use default model (no custom options)
-        if asr_options is None and vad_options is None and vad_method == settings.vad_method:
+        # Resolve model name (None = server default)
+        effective_model = model_name or settings.model
+
+        # Fast path: use default model (no custom options, default model)
+        if (
+            effective_model == settings.model
+            and asr_options is None
+            and vad_options is None
+            and vad_method == settings.vad_method
+        ):
             return cls._get_default_model()
 
-        # Slow path: get/create model with custom options
-        return cls._get_custom_model(asr_options, vad_options, vad_method)
+        # Slow path: get/create model with custom options or different model
+        return cls._get_custom_model(effective_model, asr_options, vad_options, vad_method)
 
     @classmethod
     def _get_default_model(cls) -> Any:
@@ -120,16 +136,27 @@ class ModelManager:
 
     @classmethod
     def _get_custom_model(
-        cls, asr_options: dict | None, vad_options: dict | None, vad_method: str
+        cls,
+        model_name: str,
+        asr_options: dict | None,
+        vad_options: dict | None,
+        vad_method: str,
     ) -> Any:
-        """Get or load model with custom options (may be slow on cache miss)."""
+        """Get or load model with custom options or model name (may be slow on cache miss).
+
+        Args:
+            model_name: Whisper model name to load (already resolved from settings default).
+            asr_options: Custom ASR options dict. None = use defaults.
+            vad_options: Custom VAD options dict. None = use defaults.
+            vad_method: VAD method ("pyannote" or "silero").
+        """
         settings = get_settings()
         logger = get_logger()
 
         # Build full options (merge with defaults)
         full_asr = {**DEFAULT_ASR_OPTIONS, **(asr_options or {})}
         full_vad = {**DEFAULT_VAD_OPTIONS, **(vad_options or {})}
-        options_key = cls._hash_options(full_asr, full_vad, vad_method)
+        options_key = cls._hash_options(model_name, full_asr, full_vad, vad_method)
 
         with cls._lock:
             # Check cache
@@ -138,14 +165,14 @@ class ModelManager:
                 return cls._custom_models[options_key]
 
             # Load new model with custom options
-            logger.info(f"Loading custom model (key={options_key})...")
+            logger.info(f"Loading custom model: {model_name} (key={options_key})...")
             logger.info(f"  VAD method: {vad_method}")
             logger.info(
                 f"  ASR: beam_size={full_asr.get('beam_size')}, temps={full_asr.get('temperatures')}"
             )
 
             model = murmurai_core.load_model(
-                settings.model,
+                model_name,
                 device="cuda",
                 compute_type=settings.compute_type,
                 asr_options=full_asr,
@@ -162,7 +189,7 @@ class ModelManager:
                 torch.cuda.empty_cache()
 
             cls._custom_models[options_key] = model
-            logger.info(f"Custom model loaded and cached: {options_key}")
+            logger.info(f"Custom model '{model_name}' loaded and cached: {options_key}")
             return model
 
     @classmethod

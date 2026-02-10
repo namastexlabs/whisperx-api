@@ -111,6 +111,9 @@ from murmurai_server.model_manager import ModelManager  # noqa: E402
 class TranscribeOptions:
     """Options for transcription pipeline."""
 
+    # Model selection (None = use server default from settings)
+    model: str | None = None
+
     # Language
     language: str | None = None
 
@@ -335,8 +338,9 @@ def transcribe(
                 f"  VAD: onset={vad_options.get('vad_onset')}, offset={vad_options.get('vad_offset')}"
             )
 
-    # Get model (fast path if defaults, slow path if custom options)
+    # Get model (fast path if defaults, slow path if custom options or model)
     model = ModelManager.get_model(
+        model_name=options.model,
         asr_options=asr_options,
         vad_options=vad_options,
         vad_method=options.vad_method,
