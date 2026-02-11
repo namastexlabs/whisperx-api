@@ -187,7 +187,7 @@ def process_transcription(
                 text=result["text"],
                 words=result["words"],
                 utterances=result["utterances"],
-                confidence=result["confidence"],
+                confidence=result.get("confidence"),
                 audio_duration=result["audio_duration"],
                 language_code=result["language_code"],
                 progress=1.0,

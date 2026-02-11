@@ -165,6 +165,40 @@ class TestTranscriptUtterance:
         )
         assert utterance.words is None
 
+    def test_utterance_without_speaker(self):
+        """Test utterance without speaker (no diarization)."""
+        utterance = TranscriptUtterance(
+            text="Hello World",
+            start=0,
+            end=1000,
+            confidence=0.96,
+        )
+        assert utterance.speaker is None
+        assert utterance.text == "Hello World"
+
+    def test_utterance_without_confidence(self):
+        """Test utterance without confidence (no word-level data)."""
+        utterance = TranscriptUtterance(
+            speaker="A",
+            text="Hello World",
+            start=0,
+            end=1000,
+        )
+        assert utterance.confidence is None
+        assert utterance.speaker == "A"
+
+    def test_utterance_without_speaker_and_confidence(self):
+        """Test utterance with only required fields (no diarization, no word-level data)."""
+        utterance = TranscriptUtterance(
+            text="Test segment",
+            start=0,
+            end=500,
+        )
+        assert utterance.speaker is None
+        assert utterance.confidence is None
+        assert utterance.words is None
+        assert utterance.text == "Test segment"
+
 
 class TestTranscript:
     """Tests for Transcript model."""
