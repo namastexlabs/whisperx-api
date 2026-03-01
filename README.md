@@ -173,6 +173,85 @@ curl -X POST http://localhost:8880/v1/transcript \
   -F "speakers_expected=2"
 ```
 
+#### Parameters
+
+**Input (one required):**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `file` | file | - | Audio file to transcribe (multipart upload) |
+| `audio_url` | string | - | URL to download audio from |
+
+**Language & Task:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `language_code` | string | *(auto-detect)* | Language code, e.g. `en`, `de`, `fr` |
+| `task` | string | `transcribe` | `transcribe` or `translate` (translate to English) |
+| `initial_prompt` | string | - | Prompt for the first decode window |
+| `hotwords` | string | - | Comma-separated words to boost recognition |
+
+**Speaker Diarization:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `speaker_labels` | bool | `false` | Enable speaker diarization (requires HF token) |
+| `speakers_expected` | integer | *(auto)* | Expected number of speakers |
+| `min_speakers` | integer | *(auto)* | Minimum expected speakers |
+| `max_speakers` | integer | *(auto)* | Maximum expected speakers |
+| `diarize_model` | string | `pyannote/speaker-diarization-community-1` | Speaker diarization model |
+| `return_speaker_embeddings` | bool | `false` | Include speaker embedding vectors in response |
+
+**Decoding:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `temperature` | float | `0.0` | Sampling temperature (`0` = greedy decoding) |
+| `temperature_increment_on_fallback` | float | `0.2` | Amount to increment temperature by on each retry, up to 1.0 |
+| `beam_size` | integer | `5` | Beam search size |
+| `best_of` | integer | `5` | Number of sampling alternatives |
+| `patience` | float | `1.0` | Beam search patience factor |
+| `length_penalty` | float | `1.0` | Length penalty for beam search |
+| `suppress_tokens` | string | - | Comma-separated token IDs to suppress |
+| `logprob_threshold` | float | `-1.0` | If a segment's average log probability is below this value, it is filtered out |
+| `compression_ratio_threshold` | float | `2.4` | If a segment's gzip compression ratio is higher than this value, it is filtered as a likely hallucination |
+| `no_speech_threshold` | float | `0.6` | If the no-speech probability is higher than this value, the segment is considered silent |
+| `condition_on_previous_text` | bool | `false` | Use previous output as prompt for next window |
+
+**Timestamps & Alignment:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `word_timestamps` | bool | `false` | Include word-level timestamps |
+| `return_char_alignments` | bool | `false` | Include character-level alignments |
+| `suppress_numerals` | bool | `false` | Spell out numbers instead of using digits |
+| `interpolate_method` | string | `nearest` | Word boundary interpolation: `nearest`, `linear`, or `ignore` |
+
+**VAD (Voice Activity Detection):**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `vad_method` | string | `pyannote` | VAD algorithm: `pyannote` or `silero` |
+| `vad_onset` | float | `0.5` | VAD speech onset threshold |
+| `vad_offset` | float | `0.363` | VAD speech offset threshold |
+| `chunk_size` | integer | `30` | Maximum chunk duration in seconds |
+| `segment_resolution` | string | `sentence` | Segment splitting: `sentence` or `chunk` |
+
+**Subtitle Formatting:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `max_line_width` | integer | *(unlimited)* | Maximum characters per subtitle line |
+| `max_line_count` | integer | *(unlimited)* | Maximum lines per subtitle segment |
+| `highlight_words` | bool | `false` | Highlight current word in subtitle output |
+
+**Webhook:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `webhook_url` | string | - | URL to POST results to when transcription completes |
+| `webhook_auth_header` | string | - | `Authorization` header value sent with webhook request |
+
 ### Response Format
 
 ```json
